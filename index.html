@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Quantum-ish Life Mobile</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: #101010; color: #f2f2f2; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+    body { padding: 14px; }
+    h1 { font-size: 1.25rem; margin: 0 0 6px; }
+    p { color: #bbb; margin: 0 0 12px; line-height: 1.35; font-size: 0.95rem; }
+    .wrap { max-width: 760px; margin: 0 auto; }
+    .canvasShell { width: min(94vw, 720px); height: min(94vw, 720px); margin: 12px auto; border: 3px solid #f2f2f2; border-radius: 10px; overflow: hidden; background: #fff; box-shadow: 0 10px 32px rgba(0,0,0,.45); touch-action: none; }
+    canvas { display: block; width: 100%; height: 100%; background: #fff; image-rendering: pixelated; touch-action: none; }
+    .buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0; }
+    button { appearance: none; border: 1px solid #555; background: #2a2a2a; color: #f2f2f2; padding: 13px 8px; border-radius: 10px; font-weight: 700; font-size: 0.95rem; }
+    button.primary { background: #eee; color: #111; border-color: #eee; }
+    .panel { background: #1b1b1b; border: 1px solid #333; border-radius: 12px; padding: 12px; }
+    .control { margin: 14px 0; }
+    label { display: flex; justify-content: space-between; gap: 10px; color: #e7e7e7; font-size: 0.92rem; margin-bottom: 6px; }
+    label span:last-child { color: #aaa; font-variant-numeric: tabular-nums; }
+    input[type="range"] { width: 100%; min-height: 36px; accent-color: #f2f2f2; }
+    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; color: #bbb; font-size: 0.92rem; margin: 8px 0 2px; }
+    .hint { font-size: 0.88rem; color: #999; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Quantum-ish Life</h1>
+    <p>White is dead, black is alive, grey is uncertain. Each generation secretly collapses the grid, counts neighbours, then creates the next probability grid.</p>
+
+    <div class="canvasShell" id="shell">
+      <canvas id="world" width="720" height="720" aria-label="Quantum-ish Life grid"></canvas>
+    </div>
+
+    <div class="buttons">
+      <button id="play" class="primary">Play</button>
+      <button id="step">Step</button>
+      <button id="randomise">Random</button>
+      <button id="clear">Clear</button>
+      <button id="paintMode" class="primary">Paint</button>
+      <button id="eraseMode">Erase</button>
+    </div>
+
+    <div class="panel">
+      <div class="stats">
+        <div>Generation: <strong id="generation">0</strong></div>
+        <div>Avg: <strong id="average">0.000</strong></div>
+      </div>
+
+      <div class="control"><label><span>Grid size</span><span id="gridSizeValue"></span></label><input id="gridSize" type="range" min="20" max="120" step="10" value="50"></div>
+      <div class="control"><label><span>Speed</span><span id="speedValue"></span></label><input id="speed" type="range" min="1" max="30" step="1" value="8"></div>
+      <div class="control"><label><span>Underpopulation</span><span id="underValue"></span></label><input id="under" type="range" min="0" max="1" step="0.01" value="0.10"></div>
+      <div class="control"><label><span>Normal survival</span><span id="surviveValue"></span></label><input id="survive" type="range" min="0" max="1" step="0.01" value="0.90"></div>
+      <div class="control"><label><span>Overpopulation</span><span id="overValue"></span></label><input id="over" type="range" min="0" max="1" step="0.01" value="0.75"></div>
+      <div class="control"><label><span>Birth</span><span id="birthValue"></span></label><input id="birth" type="range" min="0" max="1" step="0.01" value="0.75"></div>
+      <div class="control"><label><span>Noise</span><span id="noiseValue"></span></label><input id="noise" type="range" min="0" max="0.2" step="0.01" value="0.02"></div>
+      <p class="hint">Finger-drag on the square to paint. Use Erase to rub cells out. The visible grid lines are just guides, not part of the simulation.</p>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('world');
+  const ctx = canvas.getContext('2d', { alpha: false });
+  const $ = id => document.getElementById(id);
+
+  const controls = {
+    play: $('play'), step: $('step'), randomise: $('randomise'), clear: $('clear'),
+    paintMode: $('paintMode'), eraseMode: $('eraseMode'), gridSize: $('gridSize'), speed: $('speed'),
+    under: $('under'), survive: $('survive'), over: $('over'), birth: $('birth'), noise: $('noise')
+  };
+
+  const labels = {
+    generation: $('generation'), average: $('average'), gridSize: $('gridSizeValue'), speed: $('speedValue'),
+    under: $('underValue'), survive: $('surviveValue'), over: $('overValue'), birth: $('birthValue'), noise: $('noiseValue')
+  };
+
+  let size = Number(controls.gridSize.value);
+  let grid = makeGrid(size, 0);
+  let generation = 0;
+  let running = false;
+  let lastTick = 0;
+  let isDrawing = false;
+  let tool = 'paint';
+
+  function makeGrid(n, fill = 0) {
+    return Array.from({ length: n }, () => Array.from({ length: n }, () => fill));
+  }
+
+  function clamp(v) { return Math.max(0, Math.min(1, v)); }
+
+  function seedVisiblePattern() {
+    grid = makeGrid(size, 0);
+    const mid = Math.floor(size / 2);
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const dx = x - mid, dy = y - mid;
+        const d = Math.sqrt(dx*dx + dy*dy);
+        if (d < size * 0.18) grid[y][x] = 0.85;
+        else if (d < size * 0.28) grid[y][x] = 0.45;
+        else if (Math.random() < 0.04) grid[y][x] = Math.random() * 0.8;
+      }
+    }
+    generation = 0;
+    draw();
+  }
+
+  function randomise() {
+    grid = makeGrid(size, 0);
+    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+      grid[y][x] = Math.random() < 0.28 ? Math.random() : 0;
+    }
+    generation = 0;
+    draw();
+  }
+
+  function collapse() {
+    const out = makeGrid(size, 0);
+    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+      out[y][x] = Math.random() < grid[y][x] ? 1 : 0;
+    }
+    return out;
+  }
+
+  function neighbours(c, x, y) {
+    let n = 0;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      if (dx === 0 && dy === 0) continue;
+      n += c[(y + dy + size) % size][(x + dx + size) % size];
+    }
+    return n;
+  }
+
+  function step() {
+    const c = collapse();
+    const next = makeGrid(size, 0);
+    const under = Number(controls.under.value), survive = Number(controls.survive.value);
+    const over = Number(controls.over.value), birth = Number(controls.birth.value), noise = Number(controls.noise.value);
+
+    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+      const alive = c[y][x] === 1;
+      const n = neighbours(c, x, y);
+      let p = noise * Math.random();
+      if (alive && n < 2) p = under;
+      else if (alive && (n === 2 || n === 3)) p = survive;
+      else if (alive && n > 3) p = over;
+      else if (!alive && n === 3) p = birth;
+      next[y][x] = clamp(p);
+    }
+    grid = next;
+    generation++;
+    draw();
+  }
+
+  function draw() {
+    const w = canvas.width, h = canvas.height;
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, w, h);
+    const cell = w / size;
+    let total = 0;
+
+    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+      const p = grid[y][x];
+      total += p;
+      const shade = Math.round(255 * (1 - p));
+      ctx.fillStyle = `rgb(${shade},${shade},${shade})`;
+      ctx.fillRect(Math.floor(x * cell), Math.floor(y * cell), Math.ceil(cell), Math.ceil(cell));
+    }
+
+    // Always-visible guide grid, so you can actually see the damn thing.
+    ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= size; i++) {
+      const pos = Math.round(i * cell) + 0.5;
+      ctx.beginPath(); ctx.moveTo(pos, 0); ctx.lineTo(pos, h); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, pos); ctx.lineTo(w, pos); ctx.stroke();
+    }
+
+    labels.generation.textContent = generation;
+    labels.average.textContent = (total / (size * size)).toFixed(3);
+    updateLabels();
+  }
+
+  function updateLabels() {
+    labels.gridSize.textContent = `${size} × ${size}`;
+    labels.speed.textContent = `${controls.speed.value} gen/s`;
+    for (const k of ['under','survive','over','birth','noise']) labels[k].textContent = Number(controls[k].value).toFixed(2);
+  }
+
+  function canvasPoint(e) {
+    const r = canvas.getBoundingClientRect();
+    return {
+      x: Math.floor(((e.clientX - r.left) / r.width) * size),
+      y: Math.floor(((e.clientY - r.top) / r.height) * size)
+    };
+  }
+
+  function paint(e) {
+    const p = canvasPoint(e);
+    if (p.x < 0 || p.x >= size || p.y < 0 || p.y >= size) return;
+    grid[p.y][p.x] = tool === 'erase' ? 0 : 1;
+    draw();
+  }
+
+  function setTool(t) {
+    tool = t;
+    controls.paintMode.classList.toggle('primary', t === 'paint');
+    controls.eraseMode.classList.toggle('primary', t === 'erase');
+  }
+
+  function loop(ts) {
+    if (running) {
+      const interval = 1000 / Number(controls.speed.value);
+      if (ts - lastTick >= interval) { step(); lastTick = ts; }
+    }
+    requestAnimationFrame(loop);
+  }
+
+  controls.play.onclick = () => { running = !running; controls.play.textContent = running ? 'Pause' : 'Play'; controls.play.classList.toggle('primary', !running); };
+  controls.step.onclick = step;
+  controls.randomise.onclick = randomise;
+  controls.clear.onclick = () => { grid = makeGrid(size, 0); generation = 0; draw(); };
+  controls.paintMode.onclick = () => setTool('paint');
+  controls.eraseMode.onclick = () => setTool('erase');
+  controls.gridSize.oninput = () => { size = Number(controls.gridSize.value); seedVisiblePattern(); };
+  for (const k of ['speed','under','survive','over','birth','noise']) controls[k].oninput = updateLabels;
+
+  canvas.addEventListener('pointerdown', e => { e.preventDefault(); isDrawing = true; canvas.setPointerCapture?.(e.pointerId); paint(e); }, { passive: false });
+  canvas.addEventListener('pointermove', e => { if (!isDrawing) return; e.preventDefault(); paint(e); }, { passive: false });
+  canvas.addEventListener('pointerup', e => { e.preventDefault(); isDrawing = false; canvas.releasePointerCapture?.(e.pointerId); }, { passive: false });
+  canvas.addEventListener('pointercancel', () => { isDrawing = false; });
+
+  window.addEventListener('resize', draw);
+  seedVisiblePattern();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
