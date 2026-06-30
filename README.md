@@ -23,7 +23,7 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 
 ## Local development
 
-This is a single-file static HTML/CSS/JavaScript project.
+This is a small static HTML/CSS/JavaScript project.
 
 Run a local web server if you want browser-like hosting behaviour:
 
