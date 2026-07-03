@@ -8,6 +8,12 @@ function nextZoomLevel(current, wheelDelta) {
   return Math.max(0.25, Math.min(4, Math.round(next * 100) / 100));
 }
 
+function nextPinchZoomLevel(current, startDistance, currentDistance) {
+  if (startDistance <= 0) return current;
+  const next = current * (currentDistance / startDistance);
+  return Math.max(0.25, Math.min(4, Math.round(next * 100) / 100));
+}
+
 if (typeof document !== 'undefined') (() => {
   const canvas = document.getElementById('world');
   const ctx = canvas.getContext('2d', { alpha: false });
@@ -20,6 +26,8 @@ if (typeof document !== 'undefined') (() => {
     clear: $('clear'),
     paintMode: $('paintMode'),
     eraseMode: $('eraseMode'),
+    zoomIn: $('zoomIn'),
+    zoomOut: $('zoomOut'),
     panel: $('controlsPanel'),
     controlsToggle: $('controlsToggle'),
     gridSize: $('gridSize'),
@@ -59,6 +67,9 @@ if (typeof document !== 'undefined') (() => {
   let drawQueued = false;
   let zoom = 1;
   let controlsCollapsed = false;
+  const activePointers = new Map();
+  let pinchStartDistance = 0;
+  let pinchStartZoom = 1;
 
   const bufferCanvas = document.createElement('canvas');
   const bufferCtx = bufferCanvas.getContext('2d', { alpha: false });
@@ -309,6 +320,20 @@ if (typeof document !== 'undefined') (() => {
     controls.controlsToggle.setAttribute('aria-expanded', String(!controlsCollapsed));
   }
 
+  function applyZoomDelta(delta) {
+    zoom = Math.max(0.25, Math.min(4, Math.round((zoom + delta) * 100) / 100));
+    requestDraw();
+  }
+
+  function pointerDistance() {
+    const points = [...activePointers.values()];
+    if (points.length < 2) return 0;
+
+    const dx = points[0].clientX - points[1].clientX;
+    const dy = points[0].clientY - points[1].clientY;
+    return Math.hypot(dx, dy);
+  }
+
   function loop(ts) {
     if (running) {
       const interval = 1000 / Number(controls.speed.value);
@@ -337,6 +362,8 @@ if (typeof document !== 'undefined') (() => {
   });
   controls.paintMode.addEventListener('click', () => setTool('paint'));
   controls.eraseMode.addEventListener('click', () => setTool('erase'));
+  controls.zoomIn.addEventListener('click', () => applyZoomDelta(0.2));
+  controls.zoomOut.addEventListener('click', () => applyZoomDelta(-0.2));
   controls.controlsToggle.addEventListener('click', () => setControlsCollapsed(!controlsCollapsed));
   controls.gridSize.addEventListener('input', () => {
     resizeBuffers(Number(controls.gridSize.value));
@@ -352,12 +379,30 @@ if (typeof document !== 'undefined') (() => {
 
   canvas.addEventListener('pointerdown', e => {
     e.preventDefault();
-    isDrawing = true;
+    activePointers.set(e.pointerId, e);
     canvas.setPointerCapture?.(e.pointerId);
+
+    if (activePointers.size >= 2) {
+      isDrawing = false;
+      pinchStartDistance = pointerDistance();
+      pinchStartZoom = zoom;
+      return;
+    }
+
+    isDrawing = true;
     paint(e);
   }, { passive: false });
 
   canvas.addEventListener('pointermove', e => {
+    if (activePointers.has(e.pointerId)) activePointers.set(e.pointerId, e);
+
+    if (activePointers.size >= 2) {
+      e.preventDefault();
+      zoom = nextPinchZoomLevel(pinchStartZoom, pinchStartDistance, pointerDistance());
+      requestDraw();
+      return;
+    }
+
     if (!isDrawing) return;
     e.preventDefault();
     paint(e);
@@ -365,11 +410,13 @@ if (typeof document !== 'undefined') (() => {
 
   canvas.addEventListener('pointerup', e => {
     e.preventDefault();
+    activePointers.delete(e.pointerId);
     isDrawing = false;
     canvas.releasePointerCapture?.(e.pointerId);
   }, { passive: false });
 
-  canvas.addEventListener('pointercancel', () => {
+  canvas.addEventListener('pointercancel', e => {
+    activePointers.delete(e.pointerId);
     isDrawing = false;
   });
 

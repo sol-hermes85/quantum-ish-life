@@ -37,12 +37,24 @@ test('cells older than the configured limit are forced to die', () => {
 test('browser zoom state is constrained to a useful range', () => {
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
-  vm.runInContext(`${js}\nwindow.__testZoom = nextZoomLevel;`, sandbox);
+  vm.runInContext(`${js}\nwindow.__testZoom = nextZoomLevel; window.__testPinch = nextPinchZoomLevel;`, sandbox);
 
   assert.strictEqual(sandbox.window.__testZoom(1, -100), 1.1);
   assert.strictEqual(sandbox.window.__testZoom(1, 100), 0.9);
   assert.strictEqual(sandbox.window.__testZoom(4, -100), 4);
   assert.strictEqual(sandbox.window.__testZoom(0.25, 100), 0.25);
+  assert.strictEqual(sandbox.window.__testPinch(1, 100, 150), 1.5);
+  assert.strictEqual(sandbox.window.__testPinch(1.5, 150, 100), 1);
+  assert.strictEqual(sandbox.window.__testPinch(4, 100, 150), 4);
+});
+
+test('mobile zoom controls exist beside the grid', () => {
+  const css = fs.readFileSync('styles.css', 'utf8');
+  assert.match(html, /id="zoomIn"/);
+  assert.match(html, /id="zoomOut"/);
+  assert.match(js, /applyZoomDelta/);
+  assert.match(js, /nextPinchZoomLevel/);
+  assert.match(css, /\.zoomControls\s*{/);
 });
 
 test('controls can collapse into a compact drawer', () => {
