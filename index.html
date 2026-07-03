@@ -21,7 +21,7 @@
       <header class="titleBar">
         <div>
           <h1>Quantum-ish Life</h1>
-          <p>White is dead, black is alive, grey is uncertain. Scroll, pinch, or use +/− to zoom.</p>
+          <p>White is dead, coloured cells are alive, paler cells are uncertain. Scroll, pinch, or use +/− to zoom.</p>
         </div>
       </header>
 
@@ -45,6 +45,8 @@
         <div class="controlsGrid">
           <div class="control"><label><span>Grid size</span><span id="gridSizeValue"></span></label><input id="gridSize" type="range" min="20" max="120" step="10" value="50"></div>
           <div class="control"><label><span>Cell age limit</span><span id="ageLimitValue"></span></label><input id="ageLimit" type="range" min="0" max="100" step="1" value="5"></div>
+          <div class="control"><label><span>Colour hue</span><span id="hueValue"></span></label><input id="hue" type="range" min="0" max="360" step="1" value="200"></div>
+          <div class="control"><label><span>Saturation</span><span id="saturationValue"></span></label><input id="saturation" type="range" min="0" max="100" step="1" value="85"></div>
           <div class="control"><label><span>Speed</span><span id="speedValue"></span></label><input id="speed" type="range" min="1" max="30" step="1" value="8"></div>
           <div class="control"><label><span>Underpopulation</span><span id="underValue"></span></label><input id="under" type="range" min="0" max="1" step="0.01" value="0.10"></div>
           <div class="control"><label><span>Normal survival</span><span id="surviveValue"></span></label><input id="survive" type="range" min="0" max="1" step="0.01" value="0.90"></div>

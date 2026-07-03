@@ -50,6 +50,45 @@ function screenToGridPoint(screenX, screenY, size, canvasWidth, canvasHeight, zo
   };
 }
 
+function hslToRgb(hue, saturation, lightness) {
+  const h = (((hue % 360) + 360) % 360) / 360;
+  const s = Math.max(0, Math.min(1, saturation));
+  const l = Math.max(0, Math.min(1, lightness));
+
+  if (s === 0) {
+    const grey = Math.round(l * 255);
+    return { r: grey, g: grey, b: grey };
+  }
+
+  const hueToRgb = (p, q, t) => {
+    let tt = t;
+    if (tt < 0) tt += 1;
+    if (tt > 1) tt -= 1;
+    if (tt < 1 / 6) return p + (q - p) * 6 * tt;
+    if (tt < 1 / 2) return q;
+    if (tt < 2 / 3) return p + (q - p) * (2 / 3 - tt) * 6;
+    return p;
+  };
+
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+  const p = 2 * l - q;
+
+  return {
+    r: Math.round(hueToRgb(p, q, h + 1 / 3) * 255),
+    g: Math.round(hueToRgb(p, q, h) * 255),
+    b: Math.round(hueToRgb(p, q, h - 1 / 3) * 255)
+  };
+}
+
+function blendLiveCellColour(probability, liveColour) {
+  const p = Math.max(0, Math.min(1, probability));
+  return {
+    r: Math.round(255 * (1 - p) + liveColour.r * p),
+    g: Math.round(255 * (1 - p) + liveColour.g * p),
+    b: Math.round(255 * (1 - p) + liveColour.b * p)
+  };
+}
+
 if (typeof document !== 'undefined') (() => {
   const canvas = document.getElementById('world');
   const ctx = canvas.getContext('2d', { alpha: false });
@@ -68,6 +107,8 @@ if (typeof document !== 'undefined') (() => {
     controlsToggle: $('controlsToggle'),
     gridSize: $('gridSize'),
     ageLimit: $('ageLimit'),
+    hue: $('hue'),
+    saturation: $('saturation'),
     speed: $('speed'),
     under: $('under'),
     survive: $('survive'),
@@ -81,6 +122,8 @@ if (typeof document !== 'undefined') (() => {
     average: $('average'),
     gridSize: $('gridSizeValue'),
     ageLimit: $('ageLimitValue'),
+    hue: $('hueValue'),
+    saturation: $('saturationValue'),
     speed: $('speedValue'),
     under: $('underValue'),
     survive: $('surviveValue'),
@@ -265,15 +308,17 @@ if (typeof document !== 'undefined') (() => {
     const pixels = image.data;
     let total = 0;
 
+    const liveColour = hslToRgb(Number(controls.hue.value), Number(controls.saturation.value) / 100, 0.45);
+
     for (let i = 0; i < grid.length; i++) {
       const p = grid[i];
-      const shade = Math.round(255 * (1 - p));
+      const colour = blendLiveCellColour(p, liveColour);
       const o = i * 4;
 
       total += p;
-      pixels[o] = shade;
-      pixels[o + 1] = shade;
-      pixels[o + 2] = shade;
+      pixels[o] = colour.r;
+      pixels[o + 1] = colour.g;
+      pixels[o + 2] = colour.b;
       pixels[o + 3] = 255;
     }
 
@@ -320,6 +365,8 @@ if (typeof document !== 'undefined') (() => {
   function updateLabels() {
     labels.gridSize.textContent = `${size} × ${size}`;
     labels.ageLimit.textContent = controls.ageLimit.value === '0' ? 'never' : `${controls.ageLimit.value} gen`;
+    labels.hue.textContent = `${controls.hue.value}°`;
+    labels.saturation.textContent = `${controls.saturation.value}%`;
     labels.speed.textContent = `${controls.speed.value} gen/s`;
 
     for (const key of ['under', 'survive', 'over', 'birth', 'noise']) {
@@ -446,7 +493,7 @@ if (typeof document !== 'undefined') (() => {
     seedVisiblePattern();
   });
 
-  for (const key of ['ageLimit', 'speed', 'under', 'survive', 'over', 'birth', 'noise']) {
+  for (const key of ['ageLimit', 'hue', 'saturation', 'speed', 'under', 'survive', 'over', 'birth', 'noise']) {
     controls[key].addEventListener('input', () => {
       updateLabels();
       requestDraw();

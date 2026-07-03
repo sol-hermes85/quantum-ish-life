@@ -24,6 +24,29 @@ test('age limit slider exists with default 5 and 0-100 range', () => {
   assert.match(html, /id="ageLimitValue"/);
 });
 
+test('live cell colour controls exist with useful ranges', () => {
+  assert.match(html, /id="hue"[^>]*min="0"/);
+  assert.match(html, /id="hue"[^>]*max="360"/);
+  assert.match(html, /id="hue"[^>]*value="200"/);
+  assert.match(html, /id="hueValue"/);
+  assert.match(html, /id="saturation"[^>]*min="0"/);
+  assert.match(html, /id="saturation"[^>]*max="100"/);
+  assert.match(html, /id="saturation"[^>]*value="85"/);
+  assert.match(html, /id="saturationValue"/);
+});
+
+test('live cell colour blends from white to selected hue', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testHsl = hslToRgb; window.__testBlend = blendLiveCellColour;`, sandbox);
+
+  const red = sandbox.window.__testHsl(0, 1, 0.5);
+  assert.deepStrictEqual({ ...red }, { r: 255, g: 0, b: 0 });
+  assert.deepStrictEqual({ ...sandbox.window.__testBlend(0, red) }, { r: 255, g: 255, b: 255 });
+  assert.deepStrictEqual({ ...sandbox.window.__testBlend(1, red) }, { ...red });
+  assert.deepStrictEqual({ ...sandbox.window.__testBlend(0.5, red) }, { r: 255, g: 128, b: 128 });
+});
+
 test('cells older than the configured limit are forced to die', () => {
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
@@ -114,7 +137,7 @@ test('game initialises against a browser-sized canvas without runtime errors', (
   function makeElement(id) {
     return {
       id,
-      value: ({ gridSize: '50', ageLimit: '5', speed: '8', under: '0.10', survive: '0.90', over: '0.75', birth: '0.75', noise: '0.02' })[id] || '',
+      value: ({ gridSize: '50', ageLimit: '5', hue: '200', saturation: '85', speed: '8', under: '0.10', survive: '0.90', over: '0.75', birth: '0.75', noise: '0.02' })[id] || '',
       textContent: '',
       classList: { toggle: () => {} },
       addEventListener: () => {},
