@@ -37,7 +37,7 @@ test('cells older than the configured limit are forced to die', () => {
 test('browser zoom state is constrained to a useful range', () => {
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
-  vm.runInContext(`${js}\nwindow.__testZoom = nextZoomLevel; window.__testPinch = nextPinchZoomLevel;`, sandbox);
+  vm.runInContext(`${js}\nwindow.__testZoom = nextZoomLevel; window.__testPinch = nextPinchZoomLevel; window.__testZoomAt = zoomViewAtPoint; window.__testDrag = dragView; window.__testMap = screenToGridPoint;`, sandbox);
 
   assert.strictEqual(sandbox.window.__testZoom(1, -100), 1.1);
   assert.strictEqual(sandbox.window.__testZoom(1, 100), 0.9);
@@ -46,6 +46,31 @@ test('browser zoom state is constrained to a useful range', () => {
   assert.strictEqual(sandbox.window.__testPinch(1, 100, 150), 1.5);
   assert.strictEqual(sandbox.window.__testPinch(1.5, 150, 100), 1);
   assert.strictEqual(sandbox.window.__testPinch(4, 100, 150), 4);
+});
+
+test('camera zoom keeps the touched grid point under the fingers', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testZoomAt = zoomViewAtPoint; window.__testMap = screenToGridPoint;`, sandbox);
+
+  const before = sandbox.window.__testMap(600, 400, 50, 1200, 800, 1, 0, 0);
+  const camera = sandbox.window.__testZoomAt(1, 2, 0, 0, 600, 400, 1200, 800);
+  const after = sandbox.window.__testMap(600, 400, 50, 1200, 800, camera.zoom, camera.panX, camera.panY);
+
+  assert.deepStrictEqual({ ...after }, { ...before });
+  assert.deepStrictEqual({ ...camera }, { zoom: 2, panX: -600, panY: -400 });
+});
+
+test('two finger drag pans the zoomed grid view', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testDrag = dragView;`, sandbox);
+
+  assert.deepStrictEqual({ ...sandbox.window.__testDrag(2, -600, -400, 60, -30, 1200, 800) }, {
+    zoom: 2,
+    panX: -540,
+    panY: -430
+  });
 });
 
 test('mobile zoom controls exist beside the grid', () => {

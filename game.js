@@ -14,6 +14,42 @@ function nextPinchZoomLevel(current, startDistance, currentDistance) {
   return Math.max(0.25, Math.min(4, Math.round(next * 100) / 100));
 }
 
+function clampView(zoom, panX, panY, canvasWidth, canvasHeight) {
+  const scaledWidth = canvasWidth * zoom;
+  const scaledHeight = canvasHeight * zoom;
+  const clampedX = scaledWidth <= canvasWidth
+    ? (canvasWidth - scaledWidth) / 2
+    : Math.max(canvasWidth - scaledWidth, Math.min(0, panX));
+  const clampedY = scaledHeight <= canvasHeight
+    ? (canvasHeight - scaledHeight) / 2
+    : Math.max(canvasHeight - scaledHeight, Math.min(0, panY));
+
+  return {
+    zoom,
+    panX: Math.round(clampedX * 100) / 100,
+    panY: Math.round(clampedY * 100) / 100
+  };
+}
+
+function zoomViewAtPoint(currentZoom, nextZoom, panX, panY, anchorX, anchorY, canvasWidth, canvasHeight) {
+  const relativeX = (anchorX - panX) / (canvasWidth * currentZoom);
+  const relativeY = (anchorY - panY) / (canvasHeight * currentZoom);
+  const nextPanX = anchorX - relativeX * canvasWidth * nextZoom;
+  const nextPanY = anchorY - relativeY * canvasHeight * nextZoom;
+  return clampView(nextZoom, nextPanX, nextPanY, canvasWidth, canvasHeight);
+}
+
+function dragView(zoom, panX, panY, deltaX, deltaY, canvasWidth, canvasHeight) {
+  return clampView(zoom, panX + deltaX, panY + deltaY, canvasWidth, canvasHeight);
+}
+
+function screenToGridPoint(screenX, screenY, size, canvasWidth, canvasHeight, zoom, panX, panY) {
+  return {
+    x: Math.floor(((screenX - panX) / (canvasWidth * zoom)) * size),
+    y: Math.floor(((screenY - panY) / (canvasHeight * zoom)) * size)
+  };
+}
+
 if (typeof document !== 'undefined') (() => {
   const canvas = document.getElementById('world');
   const ctx = canvas.getContext('2d', { alpha: false });
@@ -66,10 +102,15 @@ if (typeof document !== 'undefined') (() => {
   let tool = 'paint';
   let drawQueued = false;
   let zoom = 1;
+  let panX = 0;
+  let panY = 0;
   let controlsCollapsed = false;
   const activePointers = new Map();
   let pinchStartDistance = 0;
   let pinchStartZoom = 1;
+  let pinchStartPanX = 0;
+  let pinchStartPanY = 0;
+  let pinchStartMidpoint = { x: 0, y: 0 };
 
   const bufferCanvas = document.createElement('canvas');
   const bufferCtx = bufferCanvas.getContext('2d', { alpha: false });
@@ -95,6 +136,10 @@ if (typeof document !== 'undefined') (() => {
     if (canvas.width !== width || canvas.height !== height) {
       canvas.width = width;
       canvas.height = height;
+      const camera = clampView(zoom, panX, panY, canvas.width, canvas.height);
+      zoom = camera.zoom;
+      panX = camera.panX;
+      panY = camera.panY;
     }
 
     requestDraw();
@@ -239,10 +284,8 @@ if (typeof document !== 'undefined') (() => {
 
     const drawWidth = canvas.width * zoom;
     const drawHeight = canvas.height * zoom;
-    const drawX = (canvas.width - drawWidth) / 2;
-    const drawY = (canvas.height - drawHeight) / 2;
 
-    ctx.drawImage(bufferCanvas, drawX, drawY, drawWidth, drawHeight);
+    ctx.drawImage(bufferCanvas, panX, panY, drawWidth, drawHeight);
     drawGuideGrid();
 
     labels.generation.textContent = generation;
@@ -253,8 +296,8 @@ if (typeof document !== 'undefined') (() => {
   function drawGuideGrid() {
     const cellX = (canvas.width * zoom) / size;
     const cellY = (canvas.height * zoom) / size;
-    const startX = (canvas.width - canvas.width * zoom) / 2;
-    const startY = (canvas.height - canvas.height * zoom) / 2;
+    const startX = panX;
+    const startY = panY;
 
     ctx.strokeStyle = 'rgba(0,0,0,0.18)';
     ctx.lineWidth = 1;
@@ -286,15 +329,9 @@ if (typeof document !== 'undefined') (() => {
 
   function canvasPoint(e) {
     const r = canvas.getBoundingClientRect();
-    const normalisedX = (e.clientX - r.left) / r.width;
-    const normalisedY = (e.clientY - r.top) / r.height;
-    const zoomedX = (normalisedX - 0.5) / zoom + 0.5;
-    const zoomedY = (normalisedY - 0.5) / zoom + 0.5;
-
-    return {
-      x: Math.floor(zoomedX * size),
-      y: Math.floor(zoomedY * size)
-    };
+    const screenX = ((e.clientX - r.left) / r.width) * canvas.width;
+    const screenY = ((e.clientY - r.top) / r.height) * canvas.height;
+    return screenToGridPoint(screenX, screenY, size, canvas.width, canvas.height, zoom, panX, panY);
   }
 
   function paint(e) {
@@ -321,8 +358,30 @@ if (typeof document !== 'undefined') (() => {
   }
 
   function applyZoomDelta(delta) {
-    zoom = Math.max(0.25, Math.min(4, Math.round((zoom + delta) * 100) / 100));
+    const nextZoom = Math.max(0.25, Math.min(4, Math.round((zoom + delta) * 100) / 100));
+    const camera = zoomViewAtPoint(zoom, nextZoom, panX, panY, canvas.width / 2, canvas.height / 2, canvas.width, canvas.height);
+    zoom = camera.zoom;
+    panX = camera.panX;
+    panY = camera.panY;
     requestDraw();
+  }
+
+  function toCanvasPoint(point) {
+    const r = canvas.getBoundingClientRect();
+    return {
+      x: ((point.clientX - r.left) / r.width) * canvas.width,
+      y: ((point.clientY - r.top) / r.height) * canvas.height
+    };
+  }
+
+  function pointerMidpoint() {
+    const points = [...activePointers.values()].map(toCanvasPoint);
+    if (points.length < 2) return { x: 0, y: 0 };
+
+    return {
+      x: (points[0].x + points[1].x) / 2,
+      y: (points[0].y + points[1].y) / 2
+    };
   }
 
   function pointerDistance() {
@@ -332,6 +391,23 @@ if (typeof document !== 'undefined') (() => {
     const dx = points[0].clientX - points[1].clientX;
     const dy = points[0].clientY - points[1].clientY;
     return Math.hypot(dx, dy);
+  }
+
+  function capturePointer(pointerId) {
+    try {
+      canvas.setPointerCapture?.(pointerId);
+    } catch {
+      // Synthetic browser tests and some mobile browsers can reject capture.
+      // Pointer tracking still works because we keep active pointer positions.
+    }
+  }
+
+  function releasePointer(pointerId) {
+    try {
+      canvas.releasePointerCapture?.(pointerId);
+    } catch {
+      // See capturePointer.
+    }
   }
 
   function loop(ts) {
@@ -380,12 +456,15 @@ if (typeof document !== 'undefined') (() => {
   canvas.addEventListener('pointerdown', e => {
     e.preventDefault();
     activePointers.set(e.pointerId, e);
-    canvas.setPointerCapture?.(e.pointerId);
+    capturePointer(e.pointerId);
 
     if (activePointers.size >= 2) {
       isDrawing = false;
       pinchStartDistance = pointerDistance();
       pinchStartZoom = zoom;
+      pinchStartPanX = panX;
+      pinchStartPanY = panY;
+      pinchStartMidpoint = pointerMidpoint();
       return;
     }
 
@@ -398,7 +477,13 @@ if (typeof document !== 'undefined') (() => {
 
     if (activePointers.size >= 2) {
       e.preventDefault();
-      zoom = nextPinchZoomLevel(pinchStartZoom, pinchStartDistance, pointerDistance());
+      const currentMidpoint = pointerMidpoint();
+      const nextZoom = nextPinchZoomLevel(pinchStartZoom, pinchStartDistance, pointerDistance());
+      const zoomed = zoomViewAtPoint(pinchStartZoom, nextZoom, pinchStartPanX, pinchStartPanY, pinchStartMidpoint.x, pinchStartMidpoint.y, canvas.width, canvas.height);
+      const dragged = dragView(zoomed.zoom, zoomed.panX, zoomed.panY, currentMidpoint.x - pinchStartMidpoint.x, currentMidpoint.y - pinchStartMidpoint.y, canvas.width, canvas.height);
+      zoom = dragged.zoom;
+      panX = dragged.panX;
+      panY = dragged.panY;
       requestDraw();
       return;
     }
@@ -412,7 +497,7 @@ if (typeof document !== 'undefined') (() => {
     e.preventDefault();
     activePointers.delete(e.pointerId);
     isDrawing = false;
-    canvas.releasePointerCapture?.(e.pointerId);
+    releasePointer(e.pointerId);
   }, { passive: false });
 
   canvas.addEventListener('pointercancel', e => {
@@ -422,7 +507,14 @@ if (typeof document !== 'undefined') (() => {
 
   canvas.addEventListener('wheel', e => {
     e.preventDefault();
-    zoom = nextZoomLevel(zoom, e.deltaY);
+    const r = canvas.getBoundingClientRect();
+    const anchorX = ((e.clientX - r.left) / r.width) * canvas.width;
+    const anchorY = ((e.clientY - r.top) / r.height) * canvas.height;
+    const nextZoom = nextZoomLevel(zoom, e.deltaY);
+    const camera = zoomViewAtPoint(zoom, nextZoom, panX, panY, anchorX, anchorY, canvas.width, canvas.height);
+    zoom = camera.zoom;
+    panX = camera.panX;
+    panY = camera.panY;
     requestDraw();
   }, { passive: false });
 

@@ -16,11 +16,12 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 - **Step**: advance one generation
 - **Random**: seed a random grid
 - **Clear**: reset the grid
-- **Paint / Erase**: draw cells by dragging on the grid
+- **One finger drag**: paint or erase cells
+- **Two finger pinch / drag**: zoom and pan around the grid
+- **Scroll wheel / + − buttons**: zoom in or out on the grid
 - **Grid size**: change the simulation resolution
 - **Cell age limit**: set how many generations a living cell can survive before ageing out; `0` means cells never die of age
 - **Speed**: generations per second
-- **Scroll wheel / pinch / + − buttons**: zoom in or out on the grid
 - **Hide / Show controls**: collapse the tuning panel so the grid stays visible while the simulation runs
 - **Underpopulation / survival / overpopulation / birth / noise**: tune the probability rules
 
