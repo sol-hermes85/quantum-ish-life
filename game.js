@@ -20,6 +20,8 @@ if (typeof document !== 'undefined') (() => {
     clear: $('clear'),
     paintMode: $('paintMode'),
     eraseMode: $('eraseMode'),
+    panel: $('controlsPanel'),
+    controlsToggle: $('controlsToggle'),
     gridSize: $('gridSize'),
     ageLimit: $('ageLimit'),
     speed: $('speed'),
@@ -56,6 +58,7 @@ if (typeof document !== 'undefined') (() => {
   let tool = 'paint';
   let drawQueued = false;
   let zoom = 1;
+  let controlsCollapsed = false;
 
   const bufferCanvas = document.createElement('canvas');
   const bufferCtx = bufferCanvas.getContext('2d', { alpha: false });
@@ -299,6 +302,13 @@ if (typeof document !== 'undefined') (() => {
     controls.eraseMode.classList.toggle('primary', t === 'erase');
   }
 
+  function setControlsCollapsed(collapsed) {
+    controlsCollapsed = collapsed;
+    controls.panel.classList.toggle('collapsed', controlsCollapsed);
+    controls.controlsToggle.textContent = controlsCollapsed ? 'Show controls' : 'Hide controls';
+    controls.controlsToggle.setAttribute('aria-expanded', String(!controlsCollapsed));
+  }
+
   function loop(ts) {
     if (running) {
       const interval = 1000 / Number(controls.speed.value);
@@ -327,6 +337,7 @@ if (typeof document !== 'undefined') (() => {
   });
   controls.paintMode.addEventListener('click', () => setTool('paint'));
   controls.eraseMode.addEventListener('click', () => setTool('erase'));
+  controls.controlsToggle.addEventListener('click', () => setControlsCollapsed(!controlsCollapsed));
   controls.gridSize.addEventListener('input', () => {
     resizeBuffers(Number(controls.gridSize.value));
     seedVisiblePattern();

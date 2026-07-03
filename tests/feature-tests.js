@@ -45,6 +45,20 @@ test('browser zoom state is constrained to a useful range', () => {
   assert.strictEqual(sandbox.window.__testZoom(0.25, 100), 0.25);
 });
 
+test('controls can collapse into a compact drawer', () => {
+  assert.match(html, /id="controlsToggle"/);
+  assert.match(html, /aria-controls="controlsPanel"/);
+  assert.match(html, /id="controlsPanel"/);
+  assert.match(js, /setControlsCollapsed/);
+});
+
+test('controls panel is compact and positioned beside the grid', () => {
+  const css = fs.readFileSync('styles.css', 'utf8');
+  assert.match(css, /\.ui\s*{/);
+  assert.match(css, /\.panel\s*{[^}]*max-width:\s*360px/s);
+  assert.match(css, /\.panel\.collapsed\s+\.controlsGrid\s*{[^}]*display:\s*none/s);
+});
+
 test('game initialises against a browser-sized canvas without runtime errors', () => {
   const elements = new Map();
   const rafQueue = [];

@@ -8,37 +8,48 @@
 </head>
 <body>
   <div class="wrap">
-    <h1>Quantum-ish Life</h1>
-    <p>White is dead, black is alive, grey is uncertain. Each generation secretly collapses the grid, counts neighbours, then creates the next probability grid. Scroll to zoom.</p>
-
     <div class="canvasShell" id="shell">
       <canvas id="world" width="720" height="720" aria-label="Quantum-ish Life grid"></canvas>
     </div>
 
-    <div class="buttons">
-      <button id="play" class="primary">Play</button>
-      <button id="step">Step</button>
-      <button id="randomise">Random</button>
-      <button id="clear">Clear</button>
-      <button id="paintMode" class="primary">Paint</button>
-      <button id="eraseMode">Erase</button>
-    </div>
+    <div class="ui">
+      <header class="titleBar">
+        <div>
+          <h1>Quantum-ish Life</h1>
+          <p>White is dead, black is alive, grey is uncertain. Scroll to zoom.</p>
+        </div>
+      </header>
 
-    <div class="panel">
-      <div class="stats">
-        <div>Generation: <strong id="generation">0</strong></div>
-        <div>Avg: <strong id="average">0.000</strong></div>
+      <div class="buttons">
+        <button id="play" class="primary">Play</button>
+        <button id="step">Step</button>
+        <button id="randomise">Random</button>
+        <button id="clear">Clear</button>
+        <button id="paintMode" class="primary">Paint</button>
+        <button id="eraseMode">Erase</button>
       </div>
 
-      <div class="control"><label><span>Grid size</span><span id="gridSizeValue"></span></label><input id="gridSize" type="range" min="20" max="120" step="10" value="50"></div>
-      <div class="control"><label><span>Cell age limit</span><span id="ageLimitValue"></span></label><input id="ageLimit" type="range" min="0" max="100" step="1" value="5"></div>
-      <div class="control"><label><span>Speed</span><span id="speedValue"></span></label><input id="speed" type="range" min="1" max="30" step="1" value="8"></div>
-      <div class="control"><label><span>Underpopulation</span><span id="underValue"></span></label><input id="under" type="range" min="0" max="1" step="0.01" value="0.10"></div>
-      <div class="control"><label><span>Normal survival</span><span id="surviveValue"></span></label><input id="survive" type="range" min="0" max="1" step="0.01" value="0.90"></div>
-      <div class="control"><label><span>Overpopulation</span><span id="overValue"></span></label><input id="over" type="range" min="0" max="1" step="0.01" value="0.75"></div>
-      <div class="control"><label><span>Birth</span><span id="birthValue"></span></label><input id="birth" type="range" min="0" max="1" step="0.01" value="0.75"></div>
-      <div class="control"><label><span>Noise</span><span id="noiseValue"></span></label><input id="noise" type="range" min="0" max="0.2" step="0.01" value="0.02"></div>
-      <p class="hint">Finger-drag on the square to paint. Use Erase to rub cells out. The visible grid lines are just guides, not part of the simulation.</p>
+      <div class="panel" id="controlsPanel">
+        <button id="controlsToggle" class="panelToggle" type="button" aria-expanded="true" aria-controls="controlsPanel">Hide controls</button>
+
+        <div class="stats">
+          <div>Generation: <strong id="generation">0</strong></div>
+          <div>Avg: <strong id="average">0.000</strong></div>
+        </div>
+
+        <div class="controlsGrid">
+          <div class="control"><label><span>Grid size</span><span id="gridSizeValue"></span></label><input id="gridSize" type="range" min="20" max="120" step="10" value="50"></div>
+          <div class="control"><label><span>Cell age limit</span><span id="ageLimitValue"></span></label><input id="ageLimit" type="range" min="0" max="100" step="1" value="5"></div>
+          <div class="control"><label><span>Speed</span><span id="speedValue"></span></label><input id="speed" type="range" min="1" max="30" step="1" value="8"></div>
+          <div class="control"><label><span>Underpopulation</span><span id="underValue"></span></label><input id="under" type="range" min="0" max="1" step="0.01" value="0.10"></div>
+          <div class="control"><label><span>Normal survival</span><span id="surviveValue"></span></label><input id="survive" type="range" min="0" max="1" step="0.01" value="0.90"></div>
+          <div class="control"><label><span>Overpopulation</span><span id="overValue"></span></label><input id="over" type="range" min="0" max="1" step="0.01" value="0.75"></div>
+          <div class="control"><label><span>Birth</span><span id="birthValue"></span></label><input id="birth" type="range" min="0" max="1" step="0.01" value="0.75"></div>
+          <div class="control"><label><span>Noise</span><span id="noiseValue"></span></label><input id="noise" type="range" min="0" max="0.2" step="0.01" value="0.02"></div>
+        </div>
+
+        <p class="hint">Drag to paint. Use Erase to rub cells out. The grid lines are guides only.</p>
+      </div>
     </div>
   </div>
 
