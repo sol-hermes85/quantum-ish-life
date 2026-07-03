@@ -5,14 +5,16 @@
 html,
 body {
   margin: 0;
-  min-height: 100%;
+  width: 100%;
+  height: 100%;
   background: #101010;
   color: #f2f2f2;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  overflow: hidden;
 }
 
 body {
-  padding: 14px;
+  overscroll-behavior: none;
 }
 
 h1 {
@@ -28,19 +30,16 @@ p {
 }
 
 .wrap {
-  max-width: 760px;
-  margin: 0 auto;
+  min-height: 100vh;
 }
 
 .canvasShell {
-  width: min(94vw, 720px);
-  height: min(94vw, 720px);
-  margin: 12px auto;
-  border: 3px solid #f2f2f2;
-  border-radius: 10px;
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
   overflow: hidden;
   background: #fff;
-  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.45);
   touch-action: none;
 }
 
@@ -53,17 +52,46 @@ canvas {
   touch-action: none;
 }
 
+.buttons,
+.panel,
+h1,
+.wrap > p {
+  position: relative;
+  z-index: 1;
+}
+
+h1,
+.wrap > p,
+.buttons,
+.panel {
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+h1,
+.wrap > p {
+  width: calc(100% - 28px);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+}
+
+h1 {
+  padding-top: 14px;
+}
+
 .buttons {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
-  margin: 12px 0;
+  width: calc(100% - 28px);
+  margin-top: 12px;
+  margin-bottom: 12px;
 }
 
 button {
   appearance: none;
   border: 1px solid #555;
-  background: #2a2a2a;
+  background: rgba(42, 42, 42, 0.92);
   color: #f2f2f2;
   padding: 13px 8px;
   border-radius: 10px;
@@ -78,7 +106,10 @@ button.primary {
 }
 
 .panel {
-  background: #1b1b1b;
+  width: calc(100% - 28px);
+  max-height: calc(100vh - 185px);
+  overflow: auto;
+  background: rgba(27, 27, 27, 0.94);
   border: 1px solid #333;
   border-radius: 12px;
   padding: 12px;

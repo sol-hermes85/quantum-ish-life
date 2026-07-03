@@ -18,7 +18,9 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 - **Clear**: reset the grid
 - **Paint / Erase**: draw cells by dragging on the grid
 - **Grid size**: change the simulation resolution
+- **Cell age limit**: set how many generations a living cell can survive before ageing out; `0` means cells never die of age
 - **Speed**: generations per second
+- **Scroll wheel**: zoom in or out on the grid
 - **Underpopulation / survival / overpopulation / birth / noise**: tune the probability rules
 
 ## Local development

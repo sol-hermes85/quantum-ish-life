@@ -9,7 +9,7 @@
 <body>
   <div class="wrap">
     <h1>Quantum-ish Life</h1>
-    <p>White is dead, black is alive, grey is uncertain. Each generation secretly collapses the grid, counts neighbours, then creates the next probability grid.</p>
+    <p>White is dead, black is alive, grey is uncertain. Each generation secretly collapses the grid, counts neighbours, then creates the next probability grid. Scroll to zoom.</p>
 
     <div class="canvasShell" id="shell">
       <canvas id="world" width="720" height="720" aria-label="Quantum-ish Life grid"></canvas>
@@ -31,6 +31,7 @@
       </div>
 
       <div class="control"><label><span>Grid size</span><span id="gridSizeValue"></span></label><input id="gridSize" type="range" min="20" max="120" step="10" value="50"></div>
+      <div class="control"><label><span>Cell age limit</span><span id="ageLimitValue"></span></label><input id="ageLimit" type="range" min="0" max="100" step="1" value="5"></div>
       <div class="control"><label><span>Speed</span><span id="speedValue"></span></label><input id="speed" type="range" min="1" max="30" step="1" value="8"></div>
       <div class="control"><label><span>Underpopulation</span><span id="underValue"></span></label><input id="under" type="range" min="0" max="1" step="0.01" value="0.10"></div>
       <div class="control"><label><span>Normal survival</span><span id="surviveValue"></span></label><input id="survive" type="range" min="0" max="1" step="0.01" value="0.90"></div>
