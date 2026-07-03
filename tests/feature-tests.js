@@ -47,6 +47,23 @@ test('live cell colour blends from white to selected hue', () => {
   assert.deepStrictEqual({ ...sandbox.window.__testBlend(0.5, red) }, { r: 255, g: 128, b: 128 });
 });
 
+test('disco mode cycles cells through the seven rainbow colours each generation', () => {
+  assert.match(html, /id="discoMode"[^>]*type="checkbox"/);
+  assert.match(html, /id="discoModeValue"/);
+
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testRainbow = rainbowCellColour; window.__testLiveColour = liveCellColour;`, sandbox);
+
+  const generationZero = sandbox.window.__testRainbow(0, 0);
+  const generationOne = sandbox.window.__testRainbow(0, 1);
+  const generationSeven = sandbox.window.__testRainbow(0, 7);
+  assert.notDeepStrictEqual({ ...generationZero }, { ...generationOne });
+  assert.deepStrictEqual({ ...generationZero }, { ...generationSeven });
+  assert.deepStrictEqual({ ...sandbox.window.__testLiveColour(0, 1, true, { r: 1, g: 2, b: 3 }) }, { ...generationOne });
+  assert.deepStrictEqual({ ...sandbox.window.__testLiveColour(0, 1, false, { r: 1, g: 2, b: 3 }) }, { r: 1, g: 2, b: 3 });
+});
+
 test('cells older than the configured limit are forced to die', () => {
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
@@ -138,6 +155,7 @@ test('game initialises against a browser-sized canvas without runtime errors', (
     return {
       id,
       value: ({ gridSize: '50', ageLimit: '5', hue: '200', saturation: '85', speed: '8', under: '0.10', survive: '0.90', over: '0.75', birth: '0.75', noise: '0.02' })[id] || '',
+      checked: false,
       textContent: '',
       classList: { toggle: () => {} },
       addEventListener: () => {},

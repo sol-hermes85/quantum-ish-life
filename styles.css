@@ -189,6 +189,19 @@ input[type="range"] {
   accent-color: #f2f2f2;
 }
 
+.toggleControl {
+  display: flex;
+  flex-direction: column;
+  justify-content: end;
+}
+
+.toggleControl input[type="checkbox"] {
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  accent-color: #f2f2f2;
+}
+
 .stats {
   display: grid;
   grid-template-columns: 1fr 1fr;

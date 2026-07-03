@@ -80,6 +80,24 @@ function hslToRgb(hue, saturation, lightness) {
   };
 }
 
+const RAINBOW_COLOURS = [
+  { r: 228, g: 3, b: 3 },
+  { r: 255, g: 140, b: 0 },
+  { r: 255, g: 237, b: 0 },
+  { r: 0, g: 128, b: 38 },
+  { r: 0, g: 77, b: 255 },
+  { r: 117, g: 7, b: 135 },
+  { r: 143, g: 0, b: 255 }
+];
+
+function rainbowCellColour(cellIndex, generation) {
+  return RAINBOW_COLOURS[(cellIndex + generation) % RAINBOW_COLOURS.length];
+}
+
+function liveCellColour(cellIndex, generation, discoMode, fallbackColour) {
+  return discoMode ? rainbowCellColour(cellIndex, generation) : fallbackColour;
+}
+
 function blendLiveCellColour(probability, liveColour) {
   const p = Math.max(0, Math.min(1, probability));
   return {
@@ -109,6 +127,7 @@ if (typeof document !== 'undefined') (() => {
     ageLimit: $('ageLimit'),
     hue: $('hue'),
     saturation: $('saturation'),
+    discoMode: $('discoMode'),
     speed: $('speed'),
     under: $('under'),
     survive: $('survive'),
@@ -124,6 +143,7 @@ if (typeof document !== 'undefined') (() => {
     ageLimit: $('ageLimitValue'),
     hue: $('hueValue'),
     saturation: $('saturationValue'),
+    discoMode: $('discoModeValue'),
     speed: $('speedValue'),
     under: $('underValue'),
     survive: $('surviveValue'),
@@ -308,11 +328,12 @@ if (typeof document !== 'undefined') (() => {
     const pixels = image.data;
     let total = 0;
 
-    const liveColour = hslToRgb(Number(controls.hue.value), Number(controls.saturation.value) / 100, 0.45);
+    const selectedLiveColour = hslToRgb(Number(controls.hue.value), Number(controls.saturation.value) / 100, 0.45);
+    const discoMode = controls.discoMode.checked;
 
     for (let i = 0; i < grid.length; i++) {
       const p = grid[i];
-      const colour = blendLiveCellColour(p, liveColour);
+      const colour = blendLiveCellColour(p, liveCellColour(i, generation, discoMode, selectedLiveColour));
       const o = i * 4;
 
       total += p;
@@ -367,6 +388,7 @@ if (typeof document !== 'undefined') (() => {
     labels.ageLimit.textContent = controls.ageLimit.value === '0' ? 'never' : `${controls.ageLimit.value} gen`;
     labels.hue.textContent = `${controls.hue.value}°`;
     labels.saturation.textContent = `${controls.saturation.value}%`;
+    labels.discoMode.textContent = controls.discoMode.checked ? 'on' : 'off';
     labels.speed.textContent = `${controls.speed.value} gen/s`;
 
     for (const key of ['under', 'survive', 'over', 'birth', 'noise']) {
@@ -493,7 +515,7 @@ if (typeof document !== 'undefined') (() => {
     seedVisiblePattern();
   });
 
-  for (const key of ['ageLimit', 'hue', 'saturation', 'speed', 'under', 'survive', 'over', 'birth', 'noise']) {
+  for (const key of ['ageLimit', 'hue', 'saturation', 'discoMode', 'speed', 'under', 'survive', 'over', 'birth', 'noise']) {
     controls[key].addEventListener('input', () => {
       updateLabels();
       requestDraw();

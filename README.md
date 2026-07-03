@@ -22,6 +22,7 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 - **Grid size**: change the simulation resolution
 - **Cell age limit**: set how many generations a living cell can survive before ageing out; `0` means cells never die of age
 - **Colour hue / saturation**: tune the colour used for live cells
+- **Disco mode**: cycle cells through the seven rainbow colours, changing each generation
 - **Speed**: generations per second
 - **Hide / Show controls**: collapse the tuning panel so the grid stays visible while the simulation runs
 - **Underpopulation / survival / overpopulation / birth / noise**: tune the probability rules
