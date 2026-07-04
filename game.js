@@ -98,8 +98,37 @@ function liveCellColour(cellIndex, generation, discoMode, fallbackColour) {
   return discoMode ? rainbowCellColour(cellIndex, generation) : fallbackColour;
 }
 
-function blendLiveCellColour(probability, liveColour) {
+function visibleCellProbability(probability, discoMode) {
   const p = Math.max(0, Math.min(1, probability));
+  return discoMode && p < 0.1 ? 0 : p;
+}
+
+function patternCells(pattern, size) {
+  const mid = Math.floor(size / 2);
+  const patterns = {
+    glider: [[0, -1], [1, 0], [-1, 1], [0, 1], [1, 1]],
+    blinker: [[-1, 0], [0, 0], [1, 0]],
+    pulsar: [
+      [-4, -6], [-3, -6], [-2, -6], [2, -6], [3, -6], [4, -6],
+      [-6, -4], [-1, -4], [1, -4], [6, -4],
+      [-6, -3], [-1, -3], [1, -3], [6, -3],
+      [-6, -2], [-1, -2], [1, -2], [6, -2],
+      [-4, -1], [-3, -1], [-2, -1], [2, -1], [3, -1], [4, -1],
+      [-4, 1], [-3, 1], [-2, 1], [2, 1], [3, 1], [4, 1],
+      [-6, 2], [-1, 2], [1, 2], [6, 2],
+      [-6, 3], [-1, 3], [1, 3], [6, 3],
+      [-6, 4], [-1, 4], [1, 4], [6, 4],
+      [-4, 6], [-3, 6], [-2, 6], [2, 6], [3, 6], [4, 6]
+    ]
+  };
+
+  return (patterns[pattern] || [])
+    .map(([x, y]) => ({ x: mid + x, y: mid + y }))
+    .filter(({ x, y }) => x >= 0 && x < size && y >= 0 && y < size);
+}
+
+function blendLiveCellColour(probability, liveColour, discoMode = false) {
+  const p = visibleCellProbability(probability, discoMode);
   return {
     r: Math.round(255 * (1 - p) + liveColour.r * p),
     g: Math.round(255 * (1 - p) + liveColour.g * p),
@@ -121,10 +150,12 @@ if (typeof document !== 'undefined') (() => {
     eraseMode: $('eraseMode'),
     zoomIn: $('zoomIn'),
     zoomOut: $('zoomOut'),
+    resetView: $('resetView'),
     panel: $('controlsPanel'),
     controlsToggle: $('controlsToggle'),
     gridSize: $('gridSize'),
     ageLimit: $('ageLimit'),
+    patternPreset: $('patternPreset'),
     hue: $('hue'),
     saturation: $('saturation'),
     discoMode: $('discoMode'),
@@ -141,6 +172,7 @@ if (typeof document !== 'undefined') (() => {
     average: $('average'),
     gridSize: $('gridSizeValue'),
     ageLimit: $('ageLimitValue'),
+    patternPreset: $('patternPresetValue'),
     hue: $('hueValue'),
     saturation: $('saturationValue'),
     discoMode: $('discoModeValue'),
@@ -333,7 +365,7 @@ if (typeof document !== 'undefined') (() => {
 
     for (let i = 0; i < grid.length; i++) {
       const p = grid[i];
-      const colour = blendLiveCellColour(p, liveCellColour(i, generation, discoMode, selectedLiveColour));
+      const colour = blendLiveCellColour(p, liveCellColour(i, generation, discoMode, selectedLiveColour), discoMode);
       const o = i * 4;
 
       total += p;
@@ -386,6 +418,7 @@ if (typeof document !== 'undefined') (() => {
   function updateLabels() {
     labels.gridSize.textContent = `${size} × ${size}`;
     labels.ageLimit.textContent = controls.ageLimit.value === '0' ? 'never' : `${controls.ageLimit.value} gen`;
+    labels.patternPreset.textContent = controls.patternPreset.value || 'none';
     labels.hue.textContent = `${controls.hue.value}°`;
     labels.saturation.textContent = `${controls.saturation.value}%`;
     labels.discoMode.textContent = controls.discoMode.checked ? 'on' : 'off';
@@ -424,6 +457,35 @@ if (typeof document !== 'undefined') (() => {
     controls.panel.classList.toggle('collapsed', controlsCollapsed);
     controls.controlsToggle.textContent = controlsCollapsed ? 'Show controls' : 'Hide controls';
     controls.controlsToggle.setAttribute('aria-expanded', String(!controlsCollapsed));
+  }
+
+  function resetView() {
+    const camera = clampView(1, 0, 0, canvas.width, canvas.height);
+    zoom = camera.zoom;
+    panX = camera.panX;
+    panY = camera.panY;
+    requestDraw();
+  }
+
+  function applyPattern(pattern) {
+    if (pattern === 'random-soup') {
+      randomise();
+      return;
+    }
+
+    const cells = patternCells(pattern, size);
+    if (!cells.length) return;
+
+    grid.fill(0);
+    ages.fill(0);
+    for (const { x, y } of cells) {
+      const i = idx(x, y);
+      grid[i] = 1;
+      ages[i] = 1;
+    }
+
+    generation = 0;
+    requestDraw();
   }
 
   function applyZoomDelta(delta) {
@@ -509,10 +571,15 @@ if (typeof document !== 'undefined') (() => {
   controls.eraseMode.addEventListener('click', () => setTool('erase'));
   controls.zoomIn.addEventListener('click', () => applyZoomDelta(0.2));
   controls.zoomOut.addEventListener('click', () => applyZoomDelta(-0.2));
+  controls.resetView.addEventListener('click', resetView);
   controls.controlsToggle.addEventListener('click', () => setControlsCollapsed(!controlsCollapsed));
   controls.gridSize.addEventListener('input', () => {
     resizeBuffers(Number(controls.gridSize.value));
     seedVisiblePattern();
+  });
+  controls.patternPreset.addEventListener('change', () => {
+    applyPattern(controls.patternPreset.value);
+    updateLabels();
   });
 
   for (const key of ['ageLimit', 'hue', 'saturation', 'discoMode', 'speed', 'under', 'survive', 'over', 'birth', 'noise']) {

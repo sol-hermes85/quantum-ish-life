@@ -53,7 +53,7 @@ test('disco mode cycles cells through the seven rainbow colours each generation'
 
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
-  vm.runInContext(`${js}\nwindow.__testRainbow = rainbowCellColour; window.__testLiveColour = liveCellColour;`, sandbox);
+  vm.runInContext(`${js}\nwindow.__testRainbow = rainbowCellColour; window.__testLiveColour = liveCellColour; window.__testBlend = blendLiveCellColour;`, sandbox);
 
   const generationZero = sandbox.window.__testRainbow(0, 0);
   const generationOne = sandbox.window.__testRainbow(0, 1);
@@ -62,6 +62,28 @@ test('disco mode cycles cells through the seven rainbow colours each generation'
   assert.deepStrictEqual({ ...generationZero }, { ...generationSeven });
   assert.deepStrictEqual({ ...sandbox.window.__testLiveColour(0, 1, true, { r: 1, g: 2, b: 3 }) }, { ...generationOne });
   assert.deepStrictEqual({ ...sandbox.window.__testLiveColour(0, 1, false, { r: 1, g: 2, b: 3 }) }, { r: 1, g: 2, b: 3 });
+  assert.deepStrictEqual({ ...sandbox.window.__testBlend(0.05, generationOne, true) }, { r: 255, g: 255, b: 255 });
+});
+
+test('view reset and preset pattern controls exist', () => {
+  assert.match(html, /id="resetView"/);
+  assert.match(html, /id="patternPreset"/);
+  assert.match(html, /value="glider"/);
+  assert.match(html, /value="blinker"/);
+  assert.match(html, /value="pulsar"/);
+  assert.match(html, /value="random-soup"/);
+  assert.match(js, /function resetView/);
+  assert.match(js, /function applyPattern/);
+});
+
+test('preset patterns are centred and have expected live cell counts', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testPattern = patternCells;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testPattern('glider', 50).length, 5);
+  assert.strictEqual(sandbox.window.__testPattern('blinker', 50).length, 3);
+  assert.strictEqual(sandbox.window.__testPattern('pulsar', 50).length, 48);
 });
 
 test('cells older than the configured limit are forced to die', () => {
@@ -154,7 +176,7 @@ test('game initialises against a browser-sized canvas without runtime errors', (
   function makeElement(id) {
     return {
       id,
-      value: ({ gridSize: '50', ageLimit: '5', hue: '200', saturation: '85', speed: '8', under: '0.10', survive: '0.90', over: '0.75', birth: '0.75', noise: '0.02' })[id] || '',
+      value: ({ gridSize: '50', ageLimit: '5', patternPreset: '', hue: '200', saturation: '85', speed: '8', under: '0.10', survive: '0.90', over: '0.75', birth: '0.75', noise: '0.02' })[id] || '',
       checked: false,
       textContent: '',
       classList: { toggle: () => {} },
