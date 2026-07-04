@@ -156,6 +156,7 @@ function patternCells(pattern, size) {
   const patterns = {
     glider: [[0, -1], [1, 0], [-1, 1], [0, 1], [1, 1]],
     blinker: [[-1, 0], [0, 0], [1, 0]],
+    toad: [[0, -1], [1, -1], [2, -1], [-1, 0], [0, 0], [1, 0]],
     pulsar: [
       [-4, -6], [-3, -6], [-2, -6], [2, -6], [3, -6], [4, -6],
       [-6, -4], [-1, -4], [1, -4], [6, -4],
@@ -183,6 +184,11 @@ function blendLiveCellColour(probability, liveColour, discoMode = false) {
     g: Math.round(255 * (1 - p) + liveColour.g * p),
     b: Math.round(255 * (1 - p) + liveColour.b * p)
   };
+}
+
+function populationPercent(liveCount, totalCells) {
+  if (totalCells <= 0) return '0.0%';
+  return `${((liveCount / totalCells) * 100).toFixed(1)}%`;
 }
 
 if (typeof document !== 'undefined') (() => {
@@ -223,6 +229,7 @@ if (typeof document !== 'undefined') (() => {
     generation: $('generation'),
     average: $('average'),
     liveCount: $('liveCount'),
+    livePercent: $('livePercent'),
     zoomLevel: $('zoomLevel'),
     runStatus: $('runStatus'),
     gridSize: $('gridSizeValue'),
@@ -449,6 +456,7 @@ if (typeof document !== 'undefined') (() => {
     labels.generation.textContent = generation;
     labels.average.textContent = (total / grid.length).toFixed(3);
     labels.liveCount.textContent = liveCount;
+    labels.livePercent.textContent = populationPercent(liveCount, grid.length);
     labels.zoomLevel.textContent = `${Math.round(zoom * 100)}%`;
     labels.runStatus.textContent = running ? 'Running' : 'Paused';
     updateLabels();
@@ -743,6 +751,7 @@ if (typeof document !== 'undefined') (() => {
   canvas.addEventListener('pointercancel', e => {
     activePointers.delete(e.pointerId);
     isDrawing = false;
+    releasePointer(e.pointerId);
   });
 
   canvas.addEventListener('wheel', e => {

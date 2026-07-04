@@ -69,10 +69,12 @@ test('view reset, zoom status, and preset pattern controls exist', () => {
   assert.match(html, /id="resetView"/);
   assert.match(html, /id="zoomLevel"/);
   assert.match(html, /id="liveCount"/);
+  assert.match(html, /id="livePercent"/);
   assert.match(html, /id="runStatus"/);
   assert.match(html, /id="patternPreset"/);
   assert.match(html, /value="glider"/);
   assert.match(html, /value="blinker"/);
+  assert.match(html, /value="toad"/);
   assert.match(html, /value="pulsar"/);
   assert.match(html, /value="beacon"/);
   assert.match(html, /value="random-soup"/);
@@ -156,8 +158,24 @@ test('preset patterns are centred and have expected live cell counts', () => {
 
   assert.strictEqual(sandbox.window.__testPattern('glider', 50).length, 5);
   assert.strictEqual(sandbox.window.__testPattern('blinker', 50).length, 3);
+  assert.strictEqual(sandbox.window.__testPattern('toad', 50).length, 6);
   assert.strictEqual(sandbox.window.__testPattern('pulsar', 50).length, 48);
   assert.strictEqual(sandbox.window.__testPattern('beacon', 50).length, 7);
+});
+
+test('live percentage helper formats the current filled area', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testPopulationPercent = populationPercent;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testPopulationPercent(25, 100), '25.0%');
+  assert.strictEqual(sandbox.window.__testPopulationPercent(1, 3), '33.3%');
+  assert.strictEqual(sandbox.window.__testPopulationPercent(5, 0), '0.0%');
+});
+
+test('cancelled pointers release capture to avoid stuck touch state', () => {
+  assert.match(js, /pointercancel/);
+  assert.match(js, /pointercancel[\s\S]*releasePointer\(e\.pointerId\)/);
 });
 
 test('cells older than the configured limit are forced to die', () => {
