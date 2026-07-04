@@ -19,9 +19,10 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 - **One finger drag**: paint or erase cells
 - **Two finger pinch / drag**: zoom and pan around the grid
 - **Scroll wheel / + − buttons**: zoom in or out on the grid
-- **Reset view**: return zoom and pan to the default view
+- **Reset view**: return zoom and pan to the default view; the current zoom level is shown in the stats panel
 - **Grid size**: change the simulation resolution
 - **Preset pattern**: seed a glider, blinker, pulsar, or random soup
+- **Random density**: control how full the random grid and random soup preset are
 - **Cell age limit**: set how many generations a living cell can survive before ageing out; `0` means cells never die of age
 - **Colour hue / saturation**: tune the colour used for live cells
 - **Disco mode**: cycle cells through the seven rainbow colours, changing each generation

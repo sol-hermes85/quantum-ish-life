@@ -50,6 +50,10 @@ function screenToGridPoint(screenX, screenY, size, canvasWidth, canvasHeight, zo
   };
 }
 
+function shouldDrawGuideGrid(cellWidth, cellHeight) {
+  return Math.min(cellWidth, cellHeight) >= 6;
+}
+
 function hslToRgb(hue, saturation, lightness) {
   const h = (((hue % 360) + 360) % 360) / 360;
   const s = Math.max(0, Math.min(1, saturation));
@@ -155,6 +159,7 @@ if (typeof document !== 'undefined') (() => {
     controlsToggle: $('controlsToggle'),
     gridSize: $('gridSize'),
     ageLimit: $('ageLimit'),
+    density: $('density'),
     patternPreset: $('patternPreset'),
     hue: $('hue'),
     saturation: $('saturation'),
@@ -170,8 +175,10 @@ if (typeof document !== 'undefined') (() => {
   const labels = {
     generation: $('generation'),
     average: $('average'),
+    zoomLevel: $('zoomLevel'),
     gridSize: $('gridSizeValue'),
     ageLimit: $('ageLimitValue'),
+    density: $('densityValue'),
     patternPreset: $('patternPresetValue'),
     hue: $('hueValue'),
     saturation: $('saturationValue'),
@@ -281,8 +288,9 @@ if (typeof document !== 'undefined') (() => {
     grid.fill(0);
     ages.fill(0);
 
+    const density = Number(controls.density.value);
     for (let i = 0; i < grid.length; i++) {
-      grid[i] = Math.random() < 0.28 ? Math.random() : 0;
+      grid[i] = Math.random() < density ? Math.random() : 0;
       ages[i] = grid[i] > 0 ? 1 : 0;
     }
 
@@ -388,12 +396,15 @@ if (typeof document !== 'undefined') (() => {
 
     labels.generation.textContent = generation;
     labels.average.textContent = (total / grid.length).toFixed(3);
+    labels.zoomLevel.textContent = `${Math.round(zoom * 100)}%`;
     updateLabels();
   }
 
   function drawGuideGrid() {
     const cellX = (canvas.width * zoom) / size;
     const cellY = (canvas.height * zoom) / size;
+    if (!shouldDrawGuideGrid(cellX, cellY)) return;
+
     const startX = panX;
     const startY = panY;
 
@@ -418,6 +429,7 @@ if (typeof document !== 'undefined') (() => {
   function updateLabels() {
     labels.gridSize.textContent = `${size} × ${size}`;
     labels.ageLimit.textContent = controls.ageLimit.value === '0' ? 'never' : `${controls.ageLimit.value} gen`;
+    labels.density.textContent = `${Math.round(Number(controls.density.value) * 100)}%`;
     labels.patternPreset.textContent = controls.patternPreset.value || 'none';
     labels.hue.textContent = `${controls.hue.value}°`;
     labels.saturation.textContent = `${controls.saturation.value}%`;
@@ -582,7 +594,7 @@ if (typeof document !== 'undefined') (() => {
     updateLabels();
   });
 
-  for (const key of ['ageLimit', 'hue', 'saturation', 'discoMode', 'speed', 'under', 'survive', 'over', 'birth', 'noise']) {
+  for (const key of ['ageLimit', 'density', 'hue', 'saturation', 'discoMode', 'speed', 'under', 'survive', 'over', 'birth', 'noise']) {
     controls[key].addEventListener('input', () => {
       updateLabels();
       requestDraw();

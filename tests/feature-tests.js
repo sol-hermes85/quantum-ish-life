@@ -65,8 +65,9 @@ test('disco mode cycles cells through the seven rainbow colours each generation'
   assert.deepStrictEqual({ ...sandbox.window.__testBlend(0.05, generationOne, true) }, { r: 255, g: 255, b: 255 });
 });
 
-test('view reset and preset pattern controls exist', () => {
+test('view reset, zoom status, and preset pattern controls exist', () => {
   assert.match(html, /id="resetView"/);
+  assert.match(html, /id="zoomLevel"/);
   assert.match(html, /id="patternPreset"/);
   assert.match(html, /value="glider"/);
   assert.match(html, /value="blinker"/);
@@ -74,6 +75,20 @@ test('view reset and preset pattern controls exist', () => {
   assert.match(html, /value="random-soup"/);
   assert.match(js, /function resetView/);
   assert.match(js, /function applyPattern/);
+});
+
+test('random density and guide grid optimisation helpers exist', () => {
+  assert.match(html, /id="density"[^>]*min="0.05"/);
+  assert.match(html, /id="density"[^>]*max="0.75"/);
+  assert.match(html, /id="density"[^>]*value="0.28"/);
+  assert.match(html, /id="densityValue"/);
+
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testGuide = shouldDrawGuideGrid;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testGuide(6, 6), true);
+  assert.strictEqual(sandbox.window.__testGuide(5.99, 6), false);
 });
 
 test('preset patterns are centred and have expected live cell counts', () => {
@@ -176,7 +191,7 @@ test('game initialises against a browser-sized canvas without runtime errors', (
   function makeElement(id) {
     return {
       id,
-      value: ({ gridSize: '50', ageLimit: '5', patternPreset: '', hue: '200', saturation: '85', speed: '8', under: '0.10', survive: '0.90', over: '0.75', birth: '0.75', noise: '0.02' })[id] || '',
+      value: ({ gridSize: '50', ageLimit: '5', density: '0.28', patternPreset: '', hue: '200', saturation: '85', speed: '8', under: '0.10', survive: '0.90', over: '0.75', birth: '0.75', noise: '0.02' })[id] || '',
       checked: false,
       textContent: '',
       classList: { toggle: () => {} },
