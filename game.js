@@ -83,6 +83,7 @@ function keyboardShortcutAction(key) {
   const shortcuts = {
     ' ': 'play',
     c: 'clear',
+    h: 'toggle-controls',
     i: 'invert',
     r: 'randomise',
     s: 'step'
@@ -96,6 +97,23 @@ function invertProbabilityGrid(values, ageValues) {
     values[i] = 1 - values[i];
     ageValues[i] = values[i] > 0 ? Math.max(1, ageValues[i]) : 0;
   }
+}
+
+function countCollapsedNeighbours(collapsedValues, size, x, y) {
+  const yAbove = ((y - 1 + size) % size) * size;
+  const yCurrent = y * size;
+  const yBelow = ((y + 1) % size) * size;
+  const xLeft = (x - 1 + size) % size;
+  const xRight = (x + 1) % size;
+
+  return collapsedValues[yAbove + xLeft]
+    + collapsedValues[yAbove + x]
+    + collapsedValues[yAbove + xRight]
+    + collapsedValues[yCurrent + xLeft]
+    + collapsedValues[yCurrent + xRight]
+    + collapsedValues[yBelow + xLeft]
+    + collapsedValues[yBelow + x]
+    + collapsedValues[yBelow + xRight];
 }
 
 function hslToRgb(hue, saturation, lightness) {
@@ -156,6 +174,7 @@ function patternCells(pattern, size) {
   const patterns = {
     glider: [[0, -1], [1, 0], [-1, 1], [0, 1], [1, 1]],
     blinker: [[-1, 0], [0, 0], [1, 0]],
+    lwss: [[0, -2], [3, -2], [-1, -1], [-1, 0], [3, 0], [-1, 1], [0, 1], [1, 1], [2, 1]],
     toad: [[0, -1], [1, -1], [2, -1], [-1, 0], [0, 0], [1, 0]],
     pulsar: [
       [-4, -6], [-3, -6], [-2, -6], [2, -6], [3, -6], [4, -6],
@@ -362,19 +381,7 @@ if (typeof document !== 'undefined') (() => {
   }
 
   function neighbours(x, y) {
-    let n = 0;
-
-    for (let dy = -1; dy <= 1; dy++) {
-      const yy = (y + dy + size) % size;
-
-      for (let dx = -1; dx <= 1; dx++) {
-        if (dx === 0 && dy === 0) continue;
-        const xx = (x + dx + size) % size;
-        n += collapsed[idx(xx, yy)];
-      }
-    }
-
-    return n;
+    return countCollapsedNeighbours(collapsed, size, x, y);
   }
 
   function step() {
@@ -780,6 +787,7 @@ if (typeof document !== 'undefined') (() => {
     else if (action === 'randomise') randomise();
     else if (action === 'clear') clearGrid();
     else if (action === 'invert') invertGrid();
+    else if (action === 'toggle-controls') setControlsCollapsed(!controlsCollapsed);
   });
 
   resizeBuffers(size);

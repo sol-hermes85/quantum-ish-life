@@ -22,7 +22,7 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 - **Scroll wheel / + − buttons**: zoom in or out on the grid
 - **Reset view**: return zoom and pan to the default view; the current zoom level is shown in the stats panel
 - **Grid size**: change the simulation resolution
-- **Preset pattern**: seed a glider, blinker, toad, pulsar, beacon, or random soup
+- **Preset pattern**: seed a glider, blinker, lightweight spaceship, toad, pulsar, beacon, or random soup
 - **Rule preset**: quickly switch between classic-ish, calm, and chaotic probability rules
 - **Random density**: control how full the random grid and random soup preset are
 - **Cell age limit**: set how many generations a living cell can survive before ageing out; `0` means cells never die of age
@@ -33,7 +33,7 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 - **Fill**: shows that live count as a percentage of the current grid
 - **Hide / Show controls**: collapse the tuning panel so the grid stays visible while the simulation runs
 - **Underpopulation / survival / overpopulation / birth / noise**: tune the probability rules
-- **Keyboard shortcuts**: Space play/pause, `S` step, `R` random, `C` clear, `I` invert
+- **Keyboard shortcuts**: Space play/pause, `S` step, `R` random, `C` clear, `I` invert, `H` hide/show controls
 
 ## Local development
 
