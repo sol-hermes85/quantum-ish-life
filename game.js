@@ -55,6 +55,10 @@ function shouldDrawGuideGrid(cellWidth, cellHeight) {
 }
 
 function visibleGridLineRange(start, cellSize, totalCells, viewportSize) {
+  if (cellSize <= 0 || totalCells <= 0 || viewportSize <= 0) {
+    return { first: 0, last: 0 };
+  }
+
   const first = Math.max(0, Math.floor((-start) / cellSize));
   const last = Math.min(totalCells, Math.ceil((viewportSize - start) / cellSize));
   return { first, last };
@@ -148,7 +152,8 @@ function patternCells(pattern, size) {
       [-6, 3], [-1, 3], [1, 3], [6, 3],
       [-6, 4], [-1, 4], [1, 4], [6, 4],
       [-4, 6], [-3, 6], [-2, 6], [2, 6], [3, 6], [4, 6]
-    ]
+    ],
+    beacon: [[-2, -2], [-1, -2], [-2, -1], [1, 1], [2, 1], [1, 2], [2, 2]]
   };
 
   return (patterns[pattern] || [])
@@ -201,6 +206,7 @@ if (typeof document !== 'undefined') (() => {
   const labels = {
     generation: $('generation'),
     average: $('average'),
+    liveCount: $('liveCount'),
     zoomLevel: $('zoomLevel'),
     gridSize: $('gridSizeValue'),
     ageLimit: $('ageLimitValue'),
@@ -393,6 +399,7 @@ if (typeof document !== 'undefined') (() => {
 
     const pixels = image.data;
     let total = 0;
+    let liveCount = 0;
 
     const selectedLiveColour = hslToRgb(Number(controls.hue.value), Number(controls.saturation.value) / 100, 0.45);
     const discoMode = controls.discoMode.checked;
@@ -403,6 +410,7 @@ if (typeof document !== 'undefined') (() => {
       const o = i * 4;
 
       total += p;
+      if (p >= 0.5) liveCount++;
       pixels[o] = colour.r;
       pixels[o + 1] = colour.g;
       pixels[o + 2] = colour.b;
@@ -422,6 +430,7 @@ if (typeof document !== 'undefined') (() => {
 
     labels.generation.textContent = generation;
     labels.average.textContent = (total / grid.length).toFixed(3);
+    labels.liveCount.textContent = liveCount;
     labels.zoomLevel.textContent = `${Math.round(zoom * 100)}%`;
     updateLabels();
   }

@@ -68,10 +68,12 @@ test('disco mode cycles cells through the seven rainbow colours each generation'
 test('view reset, zoom status, and preset pattern controls exist', () => {
   assert.match(html, /id="resetView"/);
   assert.match(html, /id="zoomLevel"/);
+  assert.match(html, /id="liveCount"/);
   assert.match(html, /id="patternPreset"/);
   assert.match(html, /value="glider"/);
   assert.match(html, /value="blinker"/);
   assert.match(html, /value="pulsar"/);
+  assert.match(html, /value="beacon"/);
   assert.match(html, /value="random-soup"/);
   assert.match(js, /function resetView/);
   assert.match(js, /function applyPattern/);
@@ -90,6 +92,7 @@ test('random density and guide grid optimisation helpers exist', () => {
   assert.strictEqual(sandbox.window.__testGuide(6, 6), true);
   assert.strictEqual(sandbox.window.__testGuide(5.99, 6), false);
   assert.deepStrictEqual({ ...sandbox.window.__testVisibleLines(-120, 20, 50, 300) }, { first: 6, last: 21 });
+  assert.deepStrictEqual({ ...sandbox.window.__testVisibleLines(0, 0, 50, 300) }, { first: 0, last: 0 });
 });
 
 test('invert control flips probabilities and keeps ages sensible', () => {
@@ -132,6 +135,7 @@ test('preset patterns are centred and have expected live cell counts', () => {
   assert.strictEqual(sandbox.window.__testPattern('glider', 50).length, 5);
   assert.strictEqual(sandbox.window.__testPattern('blinker', 50).length, 3);
   assert.strictEqual(sandbox.window.__testPattern('pulsar', 50).length, 48);
+  assert.strictEqual(sandbox.window.__testPattern('beacon', 50).length, 7);
 });
 
 test('cells older than the configured limit are forced to die', () => {
