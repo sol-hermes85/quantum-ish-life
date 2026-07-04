@@ -15,6 +15,7 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 - **Play / Pause**: run or stop the simulation
 - **Step**: advance one generation
 - **Random**: seed a random grid
+- **Invert**: flip the current probability grid so empty areas become alive and live areas become empty
 - **Clear**: reset the grid
 - **One finger drag**: paint or erase cells
 - **Two finger pinch / drag**: zoom and pan around the grid
@@ -29,6 +30,7 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 - **Speed**: generations per second
 - **Hide / Show controls**: collapse the tuning panel so the grid stays visible while the simulation runs
 - **Underpopulation / survival / overpopulation / birth / noise**: tune the probability rules
+- **Keyboard shortcuts**: Space play/pause, `S` step, `R` random, `C` clear, `I` invert
 
 ## Local development
 

@@ -54,6 +54,31 @@ function shouldDrawGuideGrid(cellWidth, cellHeight) {
   return Math.min(cellWidth, cellHeight) >= 6;
 }
 
+function visibleGridLineRange(start, cellSize, totalCells, viewportSize) {
+  const first = Math.max(0, Math.floor((-start) / cellSize));
+  const last = Math.min(totalCells, Math.ceil((viewportSize - start) / cellSize));
+  return { first, last };
+}
+
+function keyboardShortcutAction(key) {
+  const shortcuts = {
+    ' ': 'play',
+    c: 'clear',
+    i: 'invert',
+    r: 'randomise',
+    s: 'step'
+  };
+
+  return shortcuts[String(key).toLowerCase()] || null;
+}
+
+function invertProbabilityGrid(values, ageValues) {
+  for (let i = 0; i < values.length; i++) {
+    values[i] = 1 - values[i];
+    ageValues[i] = values[i] > 0 ? Math.max(1, ageValues[i]) : 0;
+  }
+}
+
 function hslToRgb(hue, saturation, lightness) {
   const h = (((hue % 360) + 360) % 360) / 360;
   const s = Math.max(0, Math.min(1, saturation));
@@ -149,6 +174,7 @@ if (typeof document !== 'undefined') (() => {
     play: $('play'),
     step: $('step'),
     randomise: $('randomise'),
+    invert: $('invert'),
     clear: $('clear'),
     paintMode: $('paintMode'),
     eraseMode: $('eraseMode'),
@@ -411,17 +437,24 @@ if (typeof document !== 'undefined') (() => {
     ctx.strokeStyle = 'rgba(0,0,0,0.18)';
     ctx.lineWidth = 1;
 
-    for (let i = 0; i <= size; i++) {
+    const visibleX = visibleGridLineRange(startX, cellX, size, canvas.width);
+    const visibleY = visibleGridLineRange(startY, cellY, size, canvas.height);
+
+    for (let i = visibleX.first; i <= visibleX.last; i++) {
       const x = Math.round(startX + i * cellX) + 0.5;
+
+      ctx.beginPath();
+      ctx.moveTo(x, Math.max(0, startY));
+      ctx.lineTo(x, Math.min(canvas.height, startY + canvas.height * zoom));
+      ctx.stroke();
+    }
+
+    for (let i = visibleY.first; i <= visibleY.last; i++) {
       const y = Math.round(startY + i * cellY) + 0.5;
 
       ctx.beginPath();
-      ctx.moveTo(x, startY);
-      ctx.lineTo(x, startY + canvas.height * zoom);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(startX, y);
-      ctx.lineTo(startX + canvas.width * zoom, y);
+      ctx.moveTo(Math.max(0, startX), y);
+      ctx.lineTo(Math.min(canvas.width, startX + canvas.width * zoom), y);
       ctx.stroke();
     }
   }
@@ -476,6 +509,25 @@ if (typeof document !== 'undefined') (() => {
     zoom = camera.zoom;
     panX = camera.panX;
     panY = camera.panY;
+    requestDraw();
+  }
+
+  function togglePlay() {
+    running = !running;
+    controls.play.textContent = running ? 'Pause' : 'Play';
+    controls.play.classList.toggle('primary', !running);
+  }
+
+  function clearGrid() {
+    grid.fill(0);
+    ages.fill(0);
+    generation = 0;
+    requestDraw();
+  }
+
+  function invertGrid() {
+    invertProbabilityGrid(grid, ages);
+    generation = 0;
     requestDraw();
   }
 
@@ -565,20 +617,12 @@ if (typeof document !== 'undefined') (() => {
     requestAnimationFrame(loop);
   }
 
-  controls.play.addEventListener('click', () => {
-    running = !running;
-    controls.play.textContent = running ? 'Pause' : 'Play';
-    controls.play.classList.toggle('primary', !running);
-  });
+  controls.play.addEventListener('click', togglePlay);
 
   controls.step.addEventListener('click', step);
   controls.randomise.addEventListener('click', randomise);
-  controls.clear.addEventListener('click', () => {
-    grid.fill(0);
-    ages.fill(0);
-    generation = 0;
-    requestDraw();
-  });
+  controls.invert.addEventListener('click', invertGrid);
+  controls.clear.addEventListener('click', clearGrid);
   controls.paintMode.addEventListener('click', () => setTool('paint'));
   controls.eraseMode.addEventListener('click', () => setTool('erase'));
   controls.zoomIn.addEventListener('click', () => applyZoomDelta(0.2));
@@ -667,6 +711,19 @@ if (typeof document !== 'undefined') (() => {
   }, { passive: false });
 
   window.addEventListener('resize', resizeCanvasToWindow);
+  window.addEventListener('keydown', e => {
+    if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target?.tagName)) return;
+
+    const action = keyboardShortcutAction(e.key);
+    if (!action) return;
+
+    e.preventDefault();
+    if (action === 'play') togglePlay();
+    else if (action === 'step') step();
+    else if (action === 'randomise') randomise();
+    else if (action === 'clear') clearGrid();
+    else if (action === 'invert') invertGrid();
+  });
 
   resizeBuffers(size);
   resizeCanvasToWindow();

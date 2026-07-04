@@ -85,10 +85,43 @@ test('random density and guide grid optimisation helpers exist', () => {
 
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
-  vm.runInContext(`${js}\nwindow.__testGuide = shouldDrawGuideGrid;`, sandbox);
+  vm.runInContext(`${js}\nwindow.__testGuide = shouldDrawGuideGrid; window.__testVisibleLines = visibleGridLineRange;`, sandbox);
 
   assert.strictEqual(sandbox.window.__testGuide(6, 6), true);
   assert.strictEqual(sandbox.window.__testGuide(5.99, 6), false);
+  assert.deepStrictEqual({ ...sandbox.window.__testVisibleLines(-120, 20, 50, 300) }, { first: 6, last: 21 });
+});
+
+test('invert control flips probabilities and keeps ages sensible', () => {
+  assert.match(html, /id="invert"/);
+  assert.match(js, /function invertGrid/);
+
+  const sandbox = { window: {}, console, Float32Array, Uint16Array, Math };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testInvert = invertProbabilityGrid;`, sandbox);
+
+  const values = new Float32Array([0, 0.25, 1]);
+  const ages = new Uint16Array([0, 4, 7]);
+  sandbox.window.__testInvert(values, ages);
+
+  assert.deepStrictEqual([...values].map(value => Number(value.toFixed(2))), [1, 0.75, 0]);
+  assert.deepStrictEqual([...ages], [1, 4, 0]);
+});
+
+test('keyboard shortcuts expose common actions', () => {
+  assert.match(html, /Space play\/pause/);
+  assert.match(html, /I invert/);
+
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testShortcut = keyboardShortcutAction;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testShortcut(' '), 'play');
+  assert.strictEqual(sandbox.window.__testShortcut('S'), 'step');
+  assert.strictEqual(sandbox.window.__testShortcut('r'), 'randomise');
+  assert.strictEqual(sandbox.window.__testShortcut('c'), 'clear');
+  assert.strictEqual(sandbox.window.__testShortcut('i'), 'invert');
+  assert.strictEqual(sandbox.window.__testShortcut('x'), null);
 });
 
 test('preset patterns are centred and have expected live cell counts', () => {
