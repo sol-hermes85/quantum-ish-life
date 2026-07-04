@@ -2,6 +2,21 @@ function shouldCellAgeOut(age, limit) {
   return limit > 0 && age > limit;
 }
 
+function nextCellAge(alive, previousAge, probability) {
+  if (probability <= 0) return 0;
+  return alive ? previousAge + 1 : 1;
+}
+
+const RULE_PRESETS = {
+  classic: { under: 0.10, survive: 0.90, over: 0.75, birth: 0.75, noise: 0.02 },
+  calm: { under: 0.00, survive: 1.00, over: 0.00, birth: 1.00, noise: 0.00 },
+  chaotic: { under: 0.35, survive: 0.70, over: 0.50, birth: 0.95, noise: 0.08 }
+};
+
+function rulePresetValues(name) {
+  return RULE_PRESETS[name] || null;
+}
+
 function nextZoomLevel(current, wheelDelta) {
   const direction = wheelDelta < 0 ? 1 : -1;
   const next = current + direction * 0.1;
@@ -192,6 +207,7 @@ if (typeof document !== 'undefined') (() => {
     ageLimit: $('ageLimit'),
     density: $('density'),
     patternPreset: $('patternPreset'),
+    rulePreset: $('rulePreset'),
     hue: $('hue'),
     saturation: $('saturation'),
     discoMode: $('discoMode'),
@@ -208,10 +224,12 @@ if (typeof document !== 'undefined') (() => {
     average: $('average'),
     liveCount: $('liveCount'),
     zoomLevel: $('zoomLevel'),
+    runStatus: $('runStatus'),
     gridSize: $('gridSizeValue'),
     ageLimit: $('ageLimitValue'),
     density: $('densityValue'),
     patternPreset: $('patternPresetValue'),
+    rulePreset: $('rulePresetValue'),
     hue: $('hueValue'),
     saturation: $('saturationValue'),
     discoMode: $('discoModeValue'),
@@ -378,7 +396,7 @@ if (typeof document !== 'undefined') (() => {
         else if (!alive && n === 3) p = birth;
 
         next[i] = clamp(p);
-        nextAges[i] = p > 0 ? age : 0;
+        nextAges[i] = nextCellAge(alive, ages[i], p);
       }
     }
 
@@ -432,6 +450,7 @@ if (typeof document !== 'undefined') (() => {
     labels.average.textContent = (total / grid.length).toFixed(3);
     labels.liveCount.textContent = liveCount;
     labels.zoomLevel.textContent = `${Math.round(zoom * 100)}%`;
+    labels.runStatus.textContent = running ? 'Running' : 'Paused';
     updateLabels();
   }
 
@@ -473,6 +492,7 @@ if (typeof document !== 'undefined') (() => {
     labels.ageLimit.textContent = controls.ageLimit.value === '0' ? 'never' : `${controls.ageLimit.value} gen`;
     labels.density.textContent = `${Math.round(Number(controls.density.value) * 100)}%`;
     labels.patternPreset.textContent = controls.patternPreset.value || 'none';
+    labels.rulePreset.textContent = controls.rulePreset.value || 'custom';
     labels.hue.textContent = `${controls.hue.value}°`;
     labels.saturation.textContent = `${controls.saturation.value}%`;
     labels.discoMode.textContent = controls.discoMode.checked ? 'on' : 'off';
@@ -525,6 +545,7 @@ if (typeof document !== 'undefined') (() => {
     running = !running;
     controls.play.textContent = running ? 'Pause' : 'Play';
     controls.play.classList.toggle('primary', !running);
+    labels.runStatus.textContent = running ? 'Running' : 'Paused';
   }
 
   function clearGrid() {
@@ -558,6 +579,18 @@ if (typeof document !== 'undefined') (() => {
     }
 
     generation = 0;
+    requestDraw();
+  }
+
+  function applyRulePreset(name) {
+    const preset = rulePresetValues(name);
+    if (!preset) return;
+
+    for (const [key, value] of Object.entries(preset)) {
+      controls[key].value = value.toFixed(2);
+    }
+
+    updateLabels();
     requestDraw();
   }
 
@@ -646,9 +679,15 @@ if (typeof document !== 'undefined') (() => {
     applyPattern(controls.patternPreset.value);
     updateLabels();
   });
+  controls.rulePreset.addEventListener('change', () => {
+    applyRulePreset(controls.rulePreset.value);
+  });
 
   for (const key of ['ageLimit', 'density', 'hue', 'saturation', 'discoMode', 'speed', 'under', 'survive', 'over', 'birth', 'noise']) {
     controls[key].addEventListener('input', () => {
+      if (['under', 'survive', 'over', 'birth', 'noise'].includes(key)) {
+        controls.rulePreset.value = '';
+      }
       updateLabels();
       requestDraw();
     });

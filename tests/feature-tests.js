@@ -69,6 +69,7 @@ test('view reset, zoom status, and preset pattern controls exist', () => {
   assert.match(html, /id="resetView"/);
   assert.match(html, /id="zoomLevel"/);
   assert.match(html, /id="liveCount"/);
+  assert.match(html, /id="runStatus"/);
   assert.match(html, /id="patternPreset"/);
   assert.match(html, /value="glider"/);
   assert.match(html, /value="blinker"/);
@@ -77,6 +78,27 @@ test('view reset, zoom status, and preset pattern controls exist', () => {
   assert.match(html, /value="random-soup"/);
   assert.match(js, /function resetView/);
   assert.match(js, /function applyPattern/);
+});
+
+test('rule presets expose useful probability rule sets', () => {
+  assert.match(html, /id="rulePreset"/);
+  assert.match(html, /id="rulePresetValue"/);
+  assert.match(html, /value="classic"/);
+  assert.match(html, /value="calm"/);
+  assert.match(html, /value="chaotic"/);
+
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testRulePreset = rulePresetValues;`, sandbox);
+
+  assert.deepStrictEqual({ ...sandbox.window.__testRulePreset('calm') }, {
+    under: 0,
+    survive: 1,
+    over: 0,
+    birth: 1,
+    noise: 0
+  });
+  assert.strictEqual(sandbox.window.__testRulePreset('missing'), null);
 });
 
 test('random density and guide grid optimisation helpers exist', () => {
@@ -141,11 +163,14 @@ test('preset patterns are centred and have expected live cell counts', () => {
 test('cells older than the configured limit are forced to die', () => {
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
-  vm.runInContext(`${js}\nwindow.__testAge = shouldCellAgeOut;`, sandbox);
+  vm.runInContext(`${js}\nwindow.__testAge = shouldCellAgeOut; window.__testNextAge = nextCellAge;`, sandbox);
 
   assert.strictEqual(sandbox.window.__testAge(6, 5), true);
   assert.strictEqual(sandbox.window.__testAge(5, 5), false);
   assert.strictEqual(sandbox.window.__testAge(100, 0), false);
+  assert.strictEqual(sandbox.window.__testNextAge(false, 0, 0.75), 1);
+  assert.strictEqual(sandbox.window.__testNextAge(true, 4, 0.75), 5);
+  assert.strictEqual(sandbox.window.__testNextAge(true, 4, 0), 0);
 });
 
 test('browser zoom state is constrained to a useful range', () => {
@@ -228,7 +253,7 @@ test('game initialises against a browser-sized canvas without runtime errors', (
   function makeElement(id) {
     return {
       id,
-      value: ({ gridSize: '50', ageLimit: '5', density: '0.28', patternPreset: '', hue: '200', saturation: '85', speed: '8', under: '0.10', survive: '0.90', over: '0.75', birth: '0.75', noise: '0.02' })[id] || '',
+      value: ({ gridSize: '50', ageLimit: '5', density: '0.28', patternPreset: '', rulePreset: 'classic', hue: '200', saturation: '85', speed: '8', under: '0.10', survive: '0.90', over: '0.75', birth: '0.75', noise: '0.02' })[id] || '',
       checked: false,
       textContent: '',
       classList: { toggle: () => {} },
