@@ -81,9 +81,20 @@ test('view reset, zoom status, and preset pattern controls exist', () => {
   assert.match(html, /value="toad"/);
   assert.match(html, /value="pulsar"/);
   assert.match(html, /value="beacon"/);
+  assert.match(html, /value="clock"/);
   assert.match(html, /value="random-soup"/);
   assert.match(js, /function resetView/);
   assert.match(js, /function applyPattern/);
+});
+
+test('preset labels show readable names instead of raw values', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testPresetName = displayPresetName;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testPresetName(''), 'none');
+  assert.strictEqual(sandbox.window.__testPresetName('rPentomino'), 'R-pentomino');
+  assert.strictEqual(sandbox.window.__testPresetName('random-soup'), 'Random soup');
 });
 
 test('rule presets expose useful probability rule sets', () => {
@@ -200,6 +211,7 @@ test('preset patterns are centred and have expected live cell counts', () => {
   assert.strictEqual(sandbox.window.__testPattern('toad', 50).length, 6);
   assert.strictEqual(sandbox.window.__testPattern('pulsar', 50).length, 48);
   assert.strictEqual(sandbox.window.__testPattern('beacon', 50).length, 7);
+  assert.strictEqual(sandbox.window.__testPattern('clock', 50).length, 8);
 });
 
 test('live percentage helper formats the current filled area', () => {
@@ -233,8 +245,10 @@ test('cells older than the configured limit are forced to die', () => {
 test('browser zoom state is constrained to a useful range', () => {
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
-  vm.runInContext(`${js}\nwindow.__testZoom = nextZoomLevel; window.__testPinch = nextPinchZoomLevel; window.__testZoomAt = zoomViewAtPoint; window.__testDrag = dragView; window.__testMap = screenToGridPoint;`, sandbox);
+  vm.runInContext(`${js}\nwindow.__testClampZoom = clampZoomLevel; window.__testZoom = nextZoomLevel; window.__testPinch = nextPinchZoomLevel; window.__testZoomAt = zoomViewAtPoint; window.__testDrag = dragView; window.__testMap = screenToGridPoint;`, sandbox);
 
+  assert.strictEqual(sandbox.window.__testClampZoom(1.234), 1.23);
+  assert.strictEqual(sandbox.window.__testClampZoom(4.5), 4);
   assert.strictEqual(sandbox.window.__testZoom(1, -100), 1.1);
   assert.strictEqual(sandbox.window.__testZoom(1, 100), 0.9);
   assert.strictEqual(sandbox.window.__testZoom(4, -100), 4);
@@ -274,6 +288,7 @@ test('mobile zoom controls exist beside the grid', () => {
   assert.match(html, /id="zoomIn"/);
   assert.match(html, /id="zoomOut"/);
   assert.match(js, /applyZoomDelta/);
+  assert.match(js, /const nextZoom = clampZoomLevel\(zoom \+ delta\);/);
   assert.match(js, /nextPinchZoomLevel/);
   assert.match(css, /\.zoomControls\s*{/);
 });

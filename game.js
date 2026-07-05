@@ -17,16 +17,20 @@ function rulePresetValues(name) {
   return RULE_PRESETS[name] || null;
 }
 
+function clampZoomLevel(value) {
+  return Math.max(0.25, Math.min(4, Math.round(value * 100) / 100));
+}
+
 function nextZoomLevel(current, wheelDelta) {
   const direction = wheelDelta < 0 ? 1 : -1;
   const next = current + direction * 0.1;
-  return Math.max(0.25, Math.min(4, Math.round(next * 100) / 100));
+  return clampZoomLevel(next);
 }
 
 function nextPinchZoomLevel(current, startDistance, currentDistance) {
   if (startDistance <= 0) return current;
   const next = current * (currentDistance / startDistance);
-  return Math.max(0.25, Math.min(4, Math.round(next * 100) / 100));
+  return clampZoomLevel(next);
 }
 
 function clampView(zoom, panX, panY, canvasWidth, canvasHeight) {
@@ -93,6 +97,25 @@ function keyboardShortcutAction(key) {
   };
 
   return shortcuts[String(key).toLowerCase()] || null;
+}
+
+function displayPresetName(value) {
+  const names = {
+    '': 'none',
+    glider: 'Glider',
+    blinker: 'Blinker',
+    lwss: 'Lightweight spaceship',
+    rPentomino: 'R-pentomino',
+    acorn: 'Acorn',
+    diehard: 'Diehard',
+    toad: 'Toad',
+    pulsar: 'Pulsar',
+    beacon: 'Beacon',
+    clock: 'Clock',
+    'random-soup': 'Random soup'
+  };
+
+  return names[value] || value;
 }
 
 function invertProbabilityGrid(values, ageValues) {
@@ -198,7 +221,8 @@ function patternCells(pattern, size) {
       [-6, 4], [-1, 4], [1, 4], [6, 4],
       [-4, 6], [-3, 6], [-2, 6], [2, 6], [3, 6], [4, 6]
     ],
-    beacon: [[-2, -2], [-1, -2], [-2, -1], [1, 1], [2, 1], [1, 2], [2, 2]]
+    beacon: [[-2, -2], [-1, -2], [-2, -1], [1, 1], [2, 1], [1, 2], [2, 2]],
+    clock: [[-1, -2], [-1, -1], [1, -1], [-2, 0], [2, 0], [0, 1], [1, 1], [0, 2]]
   };
 
   return (patterns[pattern] || [])
@@ -520,7 +544,7 @@ if (typeof document !== 'undefined') (() => {
     labels.gridSize.textContent = `${size} × ${size}`;
     labels.ageLimit.textContent = controls.ageLimit.value === '0' ? 'never' : `${controls.ageLimit.value} gen`;
     labels.density.textContent = `${Math.round(Number(controls.density.value) * 100)}%`;
-    labels.patternPreset.textContent = controls.patternPreset.value || 'none';
+    labels.patternPreset.textContent = displayPresetName(controls.patternPreset.value);
     labels.rulePreset.textContent = controls.rulePreset.value || 'custom';
     labels.hue.textContent = `${controls.hue.value}°`;
     labels.saturation.textContent = `${controls.saturation.value}%`;
@@ -632,7 +656,7 @@ if (typeof document !== 'undefined') (() => {
   }
 
   function applyZoomDelta(delta) {
-    const nextZoom = Math.max(0.25, Math.min(4, Math.round((zoom + delta) * 100) / 100));
+    const nextZoom = clampZoomLevel(zoom + delta);
     const camera = zoomViewAtPoint(zoom, nextZoom, panX, panY, canvas.width / 2, canvas.height / 2, canvas.width, canvas.height);
     zoom = camera.zoom;
     panX = camera.panX;
