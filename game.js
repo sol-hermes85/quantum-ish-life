@@ -117,11 +117,19 @@ function displayPresetName(value) {
     pulsar: 'Pulsar',
     beacon: 'Beacon',
     clock: 'Clock',
+    pentadecathlon: 'Pentadecathlon',
     gosperGun: 'Gosper glider gun',
     'random-soup': 'Random soup'
   };
 
   return names[value] || value;
+}
+
+function patternPresetLabel(value, size) {
+  if (!value || value === 'random-soup') return displayPresetName(value);
+
+  const count = patternCells(value, size).length;
+  return count > 0 ? `${displayPresetName(value)} (${count} cells)` : displayPresetName(value);
 }
 
 function invertProbabilityGrid(values, ageValues) {
@@ -230,6 +238,7 @@ function patternCells(pattern, size) {
     ],
     beacon: [[-2, -2], [-1, -2], [-2, -1], [1, 1], [2, 1], [1, 2], [2, 2]],
     clock: [[-1, -2], [-1, -1], [1, -1], [-2, 0], [2, 0], [0, 1], [1, 1], [0, 2]],
+    pentadecathlon: [[0, -4], [0, -3], [-1, -2], [1, -2], [0, -1], [0, 0], [0, 1], [-1, 2], [1, 2], [0, 3], [0, 4], [0, 5]],
     gosperGun: [
       [-18, -4], [-17, -4], [-18, -3], [-17, -3],
       [-8, -4], [-8, -3], [-8, -2], [-7, -5], [-7, -1], [-6, -6], [-6, 0], [-5, -6], [-5, 0], [-4, -3], [-3, -5], [-3, -1], [-2, -4], [-2, -3], [-2, -2], [-1, -3],
@@ -552,7 +561,7 @@ if (typeof document !== 'undefined') (() => {
     labels.gridSize.textContent = `${size} × ${size}`;
     labels.ageLimit.textContent = controls.ageLimit.value === '0' ? 'never' : `${controls.ageLimit.value} gen`;
     labels.density.textContent = `${Math.round(Number(controls.density.value) * 100)}%`;
-    labels.patternPreset.textContent = displayPresetName(controls.patternPreset.value);
+    labels.patternPreset.textContent = patternPresetLabel(controls.patternPreset.value, size);
     labels.rulePreset.textContent = controls.rulePreset.value || 'custom';
     labels.hue.textContent = `${controls.hue.value}°`;
     labels.saturation.textContent = `${controls.saturation.value}%`;
@@ -744,7 +753,8 @@ if (typeof document !== 'undefined') (() => {
   controls.gridSize.addEventListener('input', () => {
     resizeBuffers(Number(controls.gridSize.value));
     updateLabels();
-    seedVisiblePattern();
+    if (controls.patternPreset.value) applyPattern(controls.patternPreset.value);
+    else seedVisiblePattern();
   });
   controls.patternPreset.addEventListener('change', () => {
     applyPattern(controls.patternPreset.value);

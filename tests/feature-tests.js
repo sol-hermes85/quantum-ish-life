@@ -83,6 +83,7 @@ test('view reset, zoom status, and preset pattern controls exist', () => {
   assert.match(html, /value="pulsar"/);
   assert.match(html, /value="beacon"/);
   assert.match(html, /value="clock"/);
+  assert.match(html, /value="pentadecathlon"/);
   assert.match(html, /value="gosperGun"/);
   assert.match(html, /value="random-soup"/);
   assert.match(js, /function resetView/);
@@ -97,7 +98,18 @@ test('preset labels show readable names instead of raw values', () => {
   assert.strictEqual(sandbox.window.__testPresetName(''), 'none');
   assert.strictEqual(sandbox.window.__testPresetName('rPentomino'), 'R-pentomino');
   assert.strictEqual(sandbox.window.__testPresetName('block'), 'Block');
+  assert.strictEqual(sandbox.window.__testPresetName('pentadecathlon'), 'Pentadecathlon');
   assert.strictEqual(sandbox.window.__testPresetName('random-soup'), 'Random soup');
+});
+
+test('preset labels can include live cell counts for selected patterns', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testPresetLabel = patternPresetLabel;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testPresetLabel('', 50), 'none');
+  assert.strictEqual(sandbox.window.__testPresetLabel('random-soup', 50), 'Random soup');
+  assert.strictEqual(sandbox.window.__testPresetLabel('pentadecathlon', 50), 'Pentadecathlon (12 cells)');
 });
 
 test('rule presets expose useful probability rule sets', () => {
@@ -220,7 +232,13 @@ test('preset patterns are centred and have expected live cell counts', () => {
   assert.strictEqual(sandbox.window.__testPattern('pulsar', 50).length, 48);
   assert.strictEqual(sandbox.window.__testPattern('beacon', 50).length, 7);
   assert.strictEqual(sandbox.window.__testPattern('clock', 50).length, 8);
+  assert.strictEqual(sandbox.window.__testPattern('pentadecathlon', 50).length, 12);
   assert.strictEqual(sandbox.window.__testPattern('gosperGun', 50).length, 36);
+});
+
+test('changing grid size preserves the selected pattern instead of reverting to the default seed', () => {
+  assert.match(js, /if \(controls\.patternPreset\.value\) applyPattern\(controls\.patternPreset\.value\);/);
+  assert.match(js, /else seedVisiblePattern\(\);/);
 });
 
 test('stats expose the active drawing tool', () => {
