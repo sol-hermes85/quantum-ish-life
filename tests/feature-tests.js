@@ -78,6 +78,7 @@ test('view reset, zoom status, and preset pattern controls exist', () => {
   assert.match(html, /value="rPentomino"/);
   assert.match(html, /value="acorn"/);
   assert.match(html, /value="diehard"/);
+  assert.match(html, /value="block"/);
   assert.match(html, /value="toad"/);
   assert.match(html, /value="pulsar"/);
   assert.match(html, /value="beacon"/);
@@ -95,6 +96,7 @@ test('preset labels show readable names instead of raw values', () => {
 
   assert.strictEqual(sandbox.window.__testPresetName(''), 'none');
   assert.strictEqual(sandbox.window.__testPresetName('rPentomino'), 'R-pentomino');
+  assert.strictEqual(sandbox.window.__testPresetName('block'), 'Block');
   assert.strictEqual(sandbox.window.__testPresetName('random-soup'), 'Random soup');
 });
 
@@ -181,6 +183,7 @@ test('keyboard shortcuts expose common actions', () => {
   assert.match(html, /E paint\/erase/);
   assert.match(html, /H hide\/show controls/);
   assert.match(html, /Z reset view/);
+  assert.match(html, /\+\/− zoom/);
 
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
@@ -195,6 +198,9 @@ test('keyboard shortcuts expose common actions', () => {
   assert.strictEqual(sandbox.window.__testShortcut('d'), 'toggle-disco');
   assert.strictEqual(sandbox.window.__testShortcut('H'), 'toggle-controls');
   assert.strictEqual(sandbox.window.__testShortcut('z'), 'reset-view');
+  assert.strictEqual(sandbox.window.__testShortcut('+'), 'zoom-in');
+  assert.strictEqual(sandbox.window.__testShortcut('='), 'zoom-in');
+  assert.strictEqual(sandbox.window.__testShortcut('-'), 'zoom-out');
   assert.strictEqual(sandbox.window.__testShortcut('x'), null);
 });
 
@@ -209,6 +215,7 @@ test('preset patterns are centred and have expected live cell counts', () => {
   assert.strictEqual(sandbox.window.__testPattern('rPentomino', 50).length, 5);
   assert.strictEqual(sandbox.window.__testPattern('acorn', 50).length, 7);
   assert.strictEqual(sandbox.window.__testPattern('diehard', 50).length, 7);
+  assert.strictEqual(sandbox.window.__testPattern('block', 50).length, 4);
   assert.strictEqual(sandbox.window.__testPattern('toad', 50).length, 6);
   assert.strictEqual(sandbox.window.__testPattern('pulsar', 50).length, 48);
   assert.strictEqual(sandbox.window.__testPattern('beacon', 50).length, 7);
@@ -308,6 +315,12 @@ test('mobile zoom controls exist beside the grid', () => {
 
 test('drawing avoids rainbow colour lookup when disco mode is off', () => {
   assert.match(js, /const liveColour = discoMode \? rainbowCellColour\(i, generation\) : selectedLiveColour;/);
+});
+
+test('guide grid batches line drawing into two strokes', () => {
+  const guideBody = js.match(/function drawGuideGrid\(\) \{([\s\S]*?)\n  \}/)[1];
+  const strokes = guideBody.match(/ctx\.stroke\(\);/g) || [];
+  assert.strictEqual(strokes.length, 2);
 });
 
 test('static labels are not rewritten on every animation draw', () => {

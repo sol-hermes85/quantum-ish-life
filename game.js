@@ -86,6 +86,10 @@ function visibleGridLineRange(start, cellSize, totalCells, viewportSize) {
 function keyboardShortcutAction(key) {
   const shortcuts = {
     ' ': 'play',
+    '+': 'zoom-in',
+    '=': 'zoom-in',
+    '-': 'zoom-out',
+    _: 'zoom-out',
     c: 'clear',
     e: 'toggle-tool',
     h: 'toggle-controls',
@@ -108,6 +112,7 @@ function displayPresetName(value) {
     rPentomino: 'R-pentomino',
     acorn: 'Acorn',
     diehard: 'Diehard',
+    block: 'Block',
     toad: 'Toad',
     pulsar: 'Pulsar',
     beacon: 'Beacon',
@@ -209,6 +214,7 @@ function patternCells(pattern, size) {
     rPentomino: [[0, -1], [1, -1], [-1, 0], [0, 0], [0, 1]],
     acorn: [[-3, 0], [-2, 0], [-2, -2], [1, -1], [2, 0], [3, 0], [4, 0]],
     diehard: [[-3, 0], [-2, 0], [-2, 1], [2, 1], [3, -1], [3, 1], [4, 1]],
+    block: [[0, 0], [1, 0], [0, 1], [1, 1]],
     toad: [[0, -1], [1, -1], [2, -1], [-1, 0], [0, 0], [1, 0]],
     pulsar: [
       [-4, -6], [-3, -6], [-2, -6], [2, -6], [3, -6], [4, -6],
@@ -525,23 +531,21 @@ if (typeof document !== 'undefined') (() => {
     const visibleX = visibleGridLineRange(startX, cellX, size, canvas.width);
     const visibleY = visibleGridLineRange(startY, cellY, size, canvas.height);
 
+    ctx.beginPath();
     for (let i = visibleX.first; i <= visibleX.last; i++) {
       const x = Math.round(startX + i * cellX) + 0.5;
-
-      ctx.beginPath();
       ctx.moveTo(x, Math.max(0, startY));
       ctx.lineTo(x, Math.min(canvas.height, startY + canvas.height * zoom));
-      ctx.stroke();
     }
+    ctx.stroke();
 
+    ctx.beginPath();
     for (let i = visibleY.first; i <= visibleY.last; i++) {
       const y = Math.round(startY + i * cellY) + 0.5;
-
-      ctx.beginPath();
       ctx.moveTo(Math.max(0, startX), y);
       ctx.lineTo(Math.min(canvas.width, startX + canvas.width * zoom), y);
-      ctx.stroke();
     }
+    ctx.stroke();
   }
 
   function updateLabels() {
@@ -843,6 +847,8 @@ if (typeof document !== 'undefined') (() => {
     else if (action === 'toggle-tool') setTool(tool === 'paint' ? 'erase' : 'paint');
     else if (action === 'toggle-controls') setControlsCollapsed(!controlsCollapsed);
     else if (action === 'reset-view') resetView();
+    else if (action === 'zoom-in') applyZoomDelta(0.2);
+    else if (action === 'zoom-out') applyZoomDelta(-0.2);
   });
 
   resizeBuffers(size);
