@@ -75,6 +75,7 @@ test('view reset, zoom status, and preset pattern controls exist', () => {
   assert.match(html, /value="glider"/);
   assert.match(html, /value="blinker"/);
   assert.match(html, /value="lwss"/);
+  assert.match(html, /value="acorn"/);
   assert.match(html, /value="diehard"/);
   assert.match(html, /value="toad"/);
   assert.match(html, /value="pulsar"/);
@@ -165,6 +166,7 @@ test('keyboard shortcuts expose common actions', () => {
   assert.match(html, /I invert/);
   assert.match(html, /E paint\/erase/);
   assert.match(html, /H hide\/show controls/);
+  assert.match(html, /Z reset view/);
 
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
@@ -177,6 +179,7 @@ test('keyboard shortcuts expose common actions', () => {
   assert.strictEqual(sandbox.window.__testShortcut('e'), 'toggle-tool');
   assert.strictEqual(sandbox.window.__testShortcut('i'), 'invert');
   assert.strictEqual(sandbox.window.__testShortcut('H'), 'toggle-controls');
+  assert.strictEqual(sandbox.window.__testShortcut('z'), 'reset-view');
   assert.strictEqual(sandbox.window.__testShortcut('x'), null);
 });
 
@@ -188,6 +191,7 @@ test('preset patterns are centred and have expected live cell counts', () => {
   assert.strictEqual(sandbox.window.__testPattern('glider', 50).length, 5);
   assert.strictEqual(sandbox.window.__testPattern('blinker', 50).length, 3);
   assert.strictEqual(sandbox.window.__testPattern('lwss', 50).length, 9);
+  assert.strictEqual(sandbox.window.__testPattern('acorn', 50).length, 7);
   assert.strictEqual(sandbox.window.__testPattern('diehard', 50).length, 7);
   assert.strictEqual(sandbox.window.__testPattern('toad', 50).length, 6);
   assert.strictEqual(sandbox.window.__testPattern('pulsar', 50).length, 48);
@@ -268,6 +272,10 @@ test('mobile zoom controls exist beside the grid', () => {
   assert.match(js, /applyZoomDelta/);
   assert.match(js, /nextPinchZoomLevel/);
   assert.match(css, /\.zoomControls\s*{/);
+});
+
+test('drawing avoids rainbow colour lookup when disco mode is off', () => {
+  assert.match(js, /const liveColour = discoMode \? rainbowCellColour\(i, generation\) : selectedLiveColour;/);
 });
 
 test('controls can collapse into a compact drawer', () => {

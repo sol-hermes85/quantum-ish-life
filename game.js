@@ -87,7 +87,8 @@ function keyboardShortcutAction(key) {
     h: 'toggle-controls',
     i: 'invert',
     r: 'randomise',
-    s: 'step'
+    s: 'step',
+    z: 'reset-view'
   };
 
   return shortcuts[String(key).toLowerCase()] || null;
@@ -180,6 +181,7 @@ function patternCells(pattern, size) {
     glider: [[0, -1], [1, 0], [-1, 1], [0, 1], [1, 1]],
     blinker: [[-1, 0], [0, 0], [1, 0]],
     lwss: [[0, -2], [3, -2], [-1, -1], [-1, 0], [3, 0], [-1, 1], [0, 1], [1, 1], [2, 1]],
+    acorn: [[-3, 0], [-2, 0], [-2, -2], [1, -1], [2, 0], [3, 0], [4, 0]],
     diehard: [[-3, 0], [-2, 0], [-2, 1], [2, 1], [3, -1], [3, 1], [4, 1]],
     toad: [[0, -1], [1, -1], [2, -1], [-1, 0], [0, 0], [1, 0]],
     pulsar: [
@@ -446,7 +448,8 @@ if (typeof document !== 'undefined') (() => {
 
     for (let i = 0; i < grid.length; i++) {
       const p = grid[i];
-      const colour = blendLiveCellColour(p, liveCellColour(i, generation, discoMode, selectedLiveColour), discoMode);
+      const liveColour = discoMode ? rainbowCellColour(i, generation) : selectedLiveColour;
+      const colour = blendLiveCellColour(p, liveColour, discoMode);
       const o = i * 4;
 
       total += p;
@@ -797,6 +800,7 @@ if (typeof document !== 'undefined') (() => {
     else if (action === 'invert') invertGrid();
     else if (action === 'toggle-tool') setTool(tool === 'paint' ? 'erase' : 'paint');
     else if (action === 'toggle-controls') setControlsCollapsed(!controlsCollapsed);
+    else if (action === 'reset-view') resetView();
   });
 
   resizeBuffers(size);
