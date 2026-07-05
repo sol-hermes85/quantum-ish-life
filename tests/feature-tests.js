@@ -75,6 +75,7 @@ test('view reset, zoom status, and preset pattern controls exist', () => {
   assert.match(html, /value="glider"/);
   assert.match(html, /value="blinker"/);
   assert.match(html, /value="lwss"/);
+  assert.match(html, /value="diehard"/);
   assert.match(html, /value="toad"/);
   assert.match(html, /value="pulsar"/);
   assert.match(html, /value="beacon"/);
@@ -134,6 +135,15 @@ test('neighbour counter wraps edges without per-cell loop overhead', () => {
   assert.strictEqual(sandbox.window.__testCountNeighbours(cells, 3, 1, 1), 3);
 });
 
+test('seed distance helper avoids square root work in the default pattern', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testDistanceSquared = distanceSquared;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testDistanceSquared(3, 4), 25);
+  assert.match(js, /distanceSquared\(dx, dy\)/);
+});
+
 test('invert control flips probabilities and keeps ages sensible', () => {
   assert.match(html, /id="invert"/);
   assert.match(js, /function invertGrid/);
@@ -153,6 +163,7 @@ test('invert control flips probabilities and keeps ages sensible', () => {
 test('keyboard shortcuts expose common actions', () => {
   assert.match(html, /Space play\/pause/);
   assert.match(html, /I invert/);
+  assert.match(html, /E paint\/erase/);
   assert.match(html, /H hide\/show controls/);
 
   const sandbox = { window: {}, console };
@@ -163,6 +174,7 @@ test('keyboard shortcuts expose common actions', () => {
   assert.strictEqual(sandbox.window.__testShortcut('S'), 'step');
   assert.strictEqual(sandbox.window.__testShortcut('r'), 'randomise');
   assert.strictEqual(sandbox.window.__testShortcut('c'), 'clear');
+  assert.strictEqual(sandbox.window.__testShortcut('e'), 'toggle-tool');
   assert.strictEqual(sandbox.window.__testShortcut('i'), 'invert');
   assert.strictEqual(sandbox.window.__testShortcut('H'), 'toggle-controls');
   assert.strictEqual(sandbox.window.__testShortcut('x'), null);
@@ -176,6 +188,7 @@ test('preset patterns are centred and have expected live cell counts', () => {
   assert.strictEqual(sandbox.window.__testPattern('glider', 50).length, 5);
   assert.strictEqual(sandbox.window.__testPattern('blinker', 50).length, 3);
   assert.strictEqual(sandbox.window.__testPattern('lwss', 50).length, 9);
+  assert.strictEqual(sandbox.window.__testPattern('diehard', 50).length, 7);
   assert.strictEqual(sandbox.window.__testPattern('toad', 50).length, 6);
   assert.strictEqual(sandbox.window.__testPattern('pulsar', 50).length, 48);
   assert.strictEqual(sandbox.window.__testPattern('beacon', 50).length, 7);

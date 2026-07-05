@@ -83,6 +83,7 @@ function keyboardShortcutAction(key) {
   const shortcuts = {
     ' ': 'play',
     c: 'clear',
+    e: 'toggle-tool',
     h: 'toggle-controls',
     i: 'invert',
     r: 'randomise',
@@ -114,6 +115,10 @@ function countCollapsedNeighbours(collapsedValues, size, x, y) {
     + collapsedValues[yBelow + xLeft]
     + collapsedValues[yBelow + x]
     + collapsedValues[yBelow + xRight];
+}
+
+function distanceSquared(dx, dy) {
+  return dx * dx + dy * dy;
 }
 
 function hslToRgb(hue, saturation, lightness) {
@@ -175,6 +180,7 @@ function patternCells(pattern, size) {
     glider: [[0, -1], [1, 0], [-1, 1], [0, 1], [1, 1]],
     blinker: [[-1, 0], [0, 0], [1, 0]],
     lwss: [[0, -2], [3, -2], [-1, -1], [-1, 0], [3, 0], [-1, 1], [0, 1], [1, 1], [2, 1]],
+    diehard: [[-3, 0], [-2, 0], [-2, 1], [2, 1], [3, -1], [3, 1], [4, 1]],
     toad: [[0, -1], [1, -1], [2, -1], [-1, 0], [0, 0], [1, 0]],
     pulsar: [
       [-4, -6], [-3, -6], [-2, -6], [2, -6], [3, -6], [4, -6],
@@ -335,18 +341,20 @@ if (typeof document !== 'undefined') (() => {
     grid.fill(0);
     ages.fill(0);
     const mid = Math.floor(size / 2);
+    const innerRadiusSquared = (size * 0.18) ** 2;
+    const outerRadiusSquared = (size * 0.28) ** 2;
 
     for (let y = 0; y < size; y++) {
       for (let x = 0; x < size; x++) {
         const dx = x - mid;
         const dy = y - mid;
-        const d = Math.sqrt(dx * dx + dy * dy);
+        const d2 = distanceSquared(dx, dy);
         const i = idx(x, y);
 
-        if (d < size * 0.18) {
+        if (d2 < innerRadiusSquared) {
           grid[i] = 0.85;
           ages[i] = 1;
-        } else if (d < size * 0.28) {
+        } else if (d2 < outerRadiusSquared) {
           grid[i] = 0.45;
           ages[i] = 1;
         } else if (Math.random() < 0.04) {
@@ -787,6 +795,7 @@ if (typeof document !== 'undefined') (() => {
     else if (action === 'randomise') randomise();
     else if (action === 'clear') clearGrid();
     else if (action === 'invert') invertGrid();
+    else if (action === 'toggle-tool') setTool(tool === 'paint' ? 'erase' : 'paint');
     else if (action === 'toggle-controls') setControlsCollapsed(!controlsCollapsed);
   });
 
