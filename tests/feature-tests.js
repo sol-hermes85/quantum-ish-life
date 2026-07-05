@@ -76,6 +76,7 @@ test('view reset, zoom status, and preset pattern controls exist', () => {
   assert.match(html, /value="blinker"/);
   assert.match(html, /value="lwss"/);
   assert.match(html, /value="rPentomino"/);
+  assert.match(html, /value="smallExploder"/);
   assert.match(html, /value="acorn"/);
   assert.match(html, /value="diehard"/);
   assert.match(html, /value="block"/);
@@ -97,6 +98,7 @@ test('preset labels show readable names instead of raw values', () => {
 
   assert.strictEqual(sandbox.window.__testPresetName(''), 'none');
   assert.strictEqual(sandbox.window.__testPresetName('rPentomino'), 'R-pentomino');
+  assert.strictEqual(sandbox.window.__testPresetName('smallExploder'), 'Small exploder');
   assert.strictEqual(sandbox.window.__testPresetName('block'), 'Block');
   assert.strictEqual(sandbox.window.__testPresetName('pentadecathlon'), 'Pentadecathlon');
   assert.strictEqual(sandbox.window.__testPresetName('random-soup'), 'Random soup');
@@ -225,6 +227,7 @@ test('preset patterns are centred and have expected live cell counts', () => {
   assert.strictEqual(sandbox.window.__testPattern('blinker', 50).length, 3);
   assert.strictEqual(sandbox.window.__testPattern('lwss', 50).length, 9);
   assert.strictEqual(sandbox.window.__testPattern('rPentomino', 50).length, 5);
+  assert.strictEqual(sandbox.window.__testPattern('smallExploder', 50).length, 7);
   assert.strictEqual(sandbox.window.__testPattern('acorn', 50).length, 7);
   assert.strictEqual(sandbox.window.__testPattern('diehard', 50).length, 7);
   assert.strictEqual(sandbox.window.__testPattern('block', 50).length, 4);
@@ -329,6 +332,17 @@ test('mobile zoom controls exist beside the grid', () => {
   assert.match(js, /const nextZoom = clampZoomLevel\(zoom \+ delta\);/);
   assert.match(js, /nextPinchZoomLevel/);
   assert.match(css, /\.zoomControls\s*{/);
+});
+
+test('common controls expose keyboard hints in button titles', () => {
+  assert.match(html, /id="play"[^>]*title="Play or pause \(Space\)"/);
+  assert.match(html, /id="step"[^>]*title="Advance one generation \(S\)"/);
+  assert.match(html, /id="zoomIn"[^>]*title="Zoom in \(\+\)"/);
+  assert.match(html, /id="resetView"[^>]*title="Reset view \(Z\)"/);
+});
+
+test('switching rule preset to custom refreshes the label', () => {
+  assert.match(js, /controls\.rulePreset\.addEventListener\('change',[\s\S]*applyRulePreset\(controls\.rulePreset\.value\);[\s\S]*updateLabels\(\);[\s\S]*\}\);/);
 });
 
 test('drawing avoids rainbow colour lookup when disco mode is off', () => {

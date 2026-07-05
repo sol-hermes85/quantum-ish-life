@@ -110,6 +110,7 @@ function displayPresetName(value) {
     blinker: 'Blinker',
     lwss: 'Lightweight spaceship',
     rPentomino: 'R-pentomino',
+    smallExploder: 'Small exploder',
     acorn: 'Acorn',
     diehard: 'Diehard',
     block: 'Block',
@@ -220,6 +221,7 @@ function patternCells(pattern, size) {
     blinker: [[-1, 0], [0, 0], [1, 0]],
     lwss: [[0, -2], [3, -2], [-1, -1], [-1, 0], [3, 0], [-1, 1], [0, 1], [1, 1], [2, 1]],
     rPentomino: [[0, -1], [1, -1], [-1, 0], [0, 0], [0, 1]],
+    smallExploder: [[0, -2], [-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [0, 1]],
     acorn: [[-3, 0], [-2, 0], [-2, -2], [1, -1], [2, 0], [3, 0], [4, 0]],
     diehard: [[-3, 0], [-2, 0], [-2, 1], [2, 1], [3, -1], [3, 1], [4, 1]],
     block: [[0, 0], [1, 0], [0, 1], [1, 1]],
@@ -762,6 +764,7 @@ if (typeof document !== 'undefined') (() => {
   });
   controls.rulePreset.addEventListener('change', () => {
     applyRulePreset(controls.rulePreset.value);
+    updateLabels();
   });
 
   for (const key of ['ageLimit', 'density', 'hue', 'saturation', 'discoMode', 'speed', 'under', 'survive', 'over', 'birth', 'noise']) {
