@@ -86,6 +86,7 @@ function keyboardShortcutAction(key) {
     e: 'toggle-tool',
     h: 'toggle-controls',
     i: 'invert',
+    d: 'toggle-disco',
     r: 'randomise',
     s: 'step',
     z: 'reset-view'
@@ -181,6 +182,7 @@ function patternCells(pattern, size) {
     glider: [[0, -1], [1, 0], [-1, 1], [0, 1], [1, 1]],
     blinker: [[-1, 0], [0, 0], [1, 0]],
     lwss: [[0, -2], [3, -2], [-1, -1], [-1, 0], [3, 0], [-1, 1], [0, 1], [1, 1], [2, 1]],
+    rPentomino: [[0, -1], [1, -1], [-1, 0], [0, 0], [0, 1]],
     acorn: [[-3, 0], [-2, 0], [-2, -2], [1, -1], [2, 0], [3, 0], [4, 0]],
     diehard: [[-3, 0], [-2, 0], [-2, 1], [2, 1], [3, -1], [3, 1], [4, 1]],
     toad: [[0, -1], [1, -1], [2, -1], [-1, 0], [0, 0], [1, 0]],
@@ -291,6 +293,7 @@ if (typeof document !== 'undefined') (() => {
   let panX = 0;
   let panY = 0;
   let controlsCollapsed = false;
+  let labelsDirty = true;
   const activePointers = new Map();
   let pinchStartDistance = 0;
   let pinchStartZoom = 1;
@@ -477,7 +480,7 @@ if (typeof document !== 'undefined') (() => {
     labels.livePercent.textContent = populationPercent(liveCount, grid.length);
     labels.zoomLevel.textContent = `${Math.round(zoom * 100)}%`;
     labels.runStatus.textContent = running ? 'Running' : 'Paused';
-    updateLabels();
+    if (labelsDirty) updateLabels();
   }
 
   function drawGuideGrid() {
@@ -527,6 +530,8 @@ if (typeof document !== 'undefined') (() => {
     for (const key of ['under', 'survive', 'over', 'birth', 'noise']) {
       labels[key].textContent = Number(controls[key].value).toFixed(2);
     }
+
+    labelsDirty = false;
   }
 
   function canvasPoint(e) {
@@ -584,6 +589,12 @@ if (typeof document !== 'undefined') (() => {
   function invertGrid() {
     invertProbabilityGrid(grid, ages);
     generation = 0;
+    requestDraw();
+  }
+
+  function toggleDiscoMode() {
+    controls.discoMode.checked = !controls.discoMode.checked;
+    updateLabels();
     requestDraw();
   }
 
@@ -699,6 +710,7 @@ if (typeof document !== 'undefined') (() => {
   controls.controlsToggle.addEventListener('click', () => setControlsCollapsed(!controlsCollapsed));
   controls.gridSize.addEventListener('input', () => {
     resizeBuffers(Number(controls.gridSize.value));
+    updateLabels();
     seedVisiblePattern();
   });
   controls.patternPreset.addEventListener('change', () => {
@@ -798,6 +810,7 @@ if (typeof document !== 'undefined') (() => {
     else if (action === 'randomise') randomise();
     else if (action === 'clear') clearGrid();
     else if (action === 'invert') invertGrid();
+    else if (action === 'toggle-disco') toggleDiscoMode();
     else if (action === 'toggle-tool') setTool(tool === 'paint' ? 'erase' : 'paint');
     else if (action === 'toggle-controls') setControlsCollapsed(!controlsCollapsed);
     else if (action === 'reset-view') resetView();

@@ -75,6 +75,7 @@ test('view reset, zoom status, and preset pattern controls exist', () => {
   assert.match(html, /value="glider"/);
   assert.match(html, /value="blinker"/);
   assert.match(html, /value="lwss"/);
+  assert.match(html, /value="rPentomino"/);
   assert.match(html, /value="acorn"/);
   assert.match(html, /value="diehard"/);
   assert.match(html, /value="toad"/);
@@ -164,6 +165,7 @@ test('invert control flips probabilities and keeps ages sensible', () => {
 test('keyboard shortcuts expose common actions', () => {
   assert.match(html, /Space play\/pause/);
   assert.match(html, /I invert/);
+  assert.match(html, /D disco/);
   assert.match(html, /E paint\/erase/);
   assert.match(html, /H hide\/show controls/);
   assert.match(html, /Z reset view/);
@@ -178,6 +180,7 @@ test('keyboard shortcuts expose common actions', () => {
   assert.strictEqual(sandbox.window.__testShortcut('c'), 'clear');
   assert.strictEqual(sandbox.window.__testShortcut('e'), 'toggle-tool');
   assert.strictEqual(sandbox.window.__testShortcut('i'), 'invert');
+  assert.strictEqual(sandbox.window.__testShortcut('d'), 'toggle-disco');
   assert.strictEqual(sandbox.window.__testShortcut('H'), 'toggle-controls');
   assert.strictEqual(sandbox.window.__testShortcut('z'), 'reset-view');
   assert.strictEqual(sandbox.window.__testShortcut('x'), null);
@@ -191,6 +194,7 @@ test('preset patterns are centred and have expected live cell counts', () => {
   assert.strictEqual(sandbox.window.__testPattern('glider', 50).length, 5);
   assert.strictEqual(sandbox.window.__testPattern('blinker', 50).length, 3);
   assert.strictEqual(sandbox.window.__testPattern('lwss', 50).length, 9);
+  assert.strictEqual(sandbox.window.__testPattern('rPentomino', 50).length, 5);
   assert.strictEqual(sandbox.window.__testPattern('acorn', 50).length, 7);
   assert.strictEqual(sandbox.window.__testPattern('diehard', 50).length, 7);
   assert.strictEqual(sandbox.window.__testPattern('toad', 50).length, 6);
@@ -276,6 +280,12 @@ test('mobile zoom controls exist beside the grid', () => {
 
 test('drawing avoids rainbow colour lookup when disco mode is off', () => {
   assert.match(js, /const liveColour = discoMode \? rainbowCellColour\(i, generation\) : selectedLiveColour;/);
+});
+
+test('static labels are not rewritten on every animation draw', () => {
+  assert.match(js, /let labelsDirty = true;/);
+  assert.match(js, /if \(labelsDirty\) updateLabels\(\);/);
+  assert.match(js, /labelsDirty = false;/);
 });
 
 test('controls can collapse into a compact drawer', () => {
