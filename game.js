@@ -112,6 +112,7 @@ function displayPresetName(value) {
     pulsar: 'Pulsar',
     beacon: 'Beacon',
     clock: 'Clock',
+    gosperGun: 'Gosper glider gun',
     'random-soup': 'Random soup'
   };
 
@@ -222,7 +223,13 @@ function patternCells(pattern, size) {
       [-4, 6], [-3, 6], [-2, 6], [2, 6], [3, 6], [4, 6]
     ],
     beacon: [[-2, -2], [-1, -2], [-2, -1], [1, 1], [2, 1], [1, 2], [2, 2]],
-    clock: [[-1, -2], [-1, -1], [1, -1], [-2, 0], [2, 0], [0, 1], [1, 1], [0, 2]]
+    clock: [[-1, -2], [-1, -1], [1, -1], [-2, 0], [2, 0], [0, 1], [1, 1], [0, 2]],
+    gosperGun: [
+      [-18, -4], [-17, -4], [-18, -3], [-17, -3],
+      [-8, -4], [-8, -3], [-8, -2], [-7, -5], [-7, -1], [-6, -6], [-6, 0], [-5, -6], [-5, 0], [-4, -3], [-3, -5], [-3, -1], [-2, -4], [-2, -3], [-2, -2], [-1, -3],
+      [2, -6], [2, -5], [2, -4], [3, -6], [3, -5], [3, -4], [4, -7], [4, -3], [6, -8], [6, -7], [6, -3], [6, -2],
+      [16, -6], [17, -6], [16, -5], [17, -5]
+    ]
   };
 
   return (patterns[pattern] || [])
@@ -283,6 +290,7 @@ if (typeof document !== 'undefined') (() => {
     average: $('average'),
     liveCount: $('liveCount'),
     livePercent: $('livePercent'),
+    toolStatus: $('toolStatus'),
     zoomLevel: $('zoomLevel'),
     runStatus: $('runStatus'),
     gridSize: $('gridSizeValue'),
@@ -417,10 +425,6 @@ if (typeof document !== 'undefined') (() => {
     }
   }
 
-  function neighbours(x, y) {
-    return countCollapsedNeighbours(collapsed, size, x, y);
-  }
-
   function step() {
     collapse();
 
@@ -436,7 +440,7 @@ if (typeof document !== 'undefined') (() => {
         const i = idx(x, y);
         const alive = collapsed[i] === 1;
         const age = alive ? ages[i] + 1 : 0;
-        const n = neighbours(x, y);
+        const n = countCollapsedNeighbours(collapsed, size, x, y);
         let p = noise * Math.random();
 
         if (shouldCellAgeOut(age, ageLimit)) {
@@ -579,6 +583,7 @@ if (typeof document !== 'undefined') (() => {
     tool = t;
     controls.paintMode.classList.toggle('primary', t === 'paint');
     controls.eraseMode.classList.toggle('primary', t === 'erase');
+    labels.toolStatus.textContent = t === 'paint' ? 'Paint' : 'Erase';
   }
 
   function setControlsCollapsed(collapsed) {

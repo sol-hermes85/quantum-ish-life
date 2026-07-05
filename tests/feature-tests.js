@@ -82,6 +82,7 @@ test('view reset, zoom status, and preset pattern controls exist', () => {
   assert.match(html, /value="pulsar"/);
   assert.match(html, /value="beacon"/);
   assert.match(html, /value="clock"/);
+  assert.match(html, /value="gosperGun"/);
   assert.match(html, /value="random-soup"/);
   assert.match(js, /function resetView/);
   assert.match(js, /function applyPattern/);
@@ -212,6 +213,18 @@ test('preset patterns are centred and have expected live cell counts', () => {
   assert.strictEqual(sandbox.window.__testPattern('pulsar', 50).length, 48);
   assert.strictEqual(sandbox.window.__testPattern('beacon', 50).length, 7);
   assert.strictEqual(sandbox.window.__testPattern('clock', 50).length, 8);
+  assert.strictEqual(sandbox.window.__testPattern('gosperGun', 50).length, 36);
+});
+
+test('stats expose the active drawing tool', () => {
+  assert.match(html, /id="toolStatus"/);
+  assert.match(html, /Tool:/);
+  assert.match(js, /labels\.toolStatus\.textContent = t === 'paint' \? 'Paint' : 'Erase';/);
+});
+
+test('simulation step counts neighbours directly without wrapper overhead', () => {
+  assert.doesNotMatch(js, /function neighbours/);
+  assert.match(js, /const n = countCollapsedNeighbours\(collapsed, size, x, y\);/);
 });
 
 test('live percentage helper formats the current filled area', () => {
