@@ -40,20 +40,20 @@
         <button id="controlsToggle" class="panelToggle" type="button" aria-expanded="true" aria-controls="controlsPanel">Hide controls</button>
 
         <div class="stats">
-          <div>Generation: <strong id="generation">0</strong></div>
-          <div>Avg: <strong id="average">0.000</strong></div>
-          <div>Live: <strong id="liveCount">0</strong></div>
-          <div>Fill: <strong id="livePercent">0.0%</strong></div>
-          <div>Zoom: <strong id="zoomLevel">100%</strong></div>
-          <div>Status: <strong id="runStatus">Paused</strong></div>
-          <div>Tool: <strong id="toolStatus">Paint</strong></div>
+          <div>Generation: <strong id="generation" aria-live="polite">0</strong></div>
+          <div>Avg: <strong id="average" aria-live="polite">0.000</strong></div>
+          <div>Live: <strong id="liveCount" aria-live="polite">0</strong></div>
+          <div>Fill: <strong id="livePercent" aria-live="polite">0.0%</strong></div>
+          <div>Zoom: <strong id="zoomLevel" aria-live="polite">100%</strong></div>
+          <div>Status: <strong id="runStatus" aria-live="polite">Paused</strong></div>
+          <div>Tool: <strong id="toolStatus" aria-live="polite">Paint</strong></div>
         </div>
 
         <div class="controlsGrid">
           <div class="control"><label><span>Grid size</span><span id="gridSizeValue"></span></label><input id="gridSize" type="range" min="20" max="120" step="10" value="50"></div>
           <div class="control"><label><span>Cell age limit</span><span id="ageLimitValue"></span></label><input id="ageLimit" type="range" min="0" max="100" step="1" value="5"></div>
           <div class="control"><label><span>Random density</span><span id="densityValue"></span></label><input id="density" type="range" min="0.05" max="0.75" step="0.01" value="0.28"></div>
-          <div class="control"><label for="patternPreset"><span>Preset pattern</span><span id="patternPresetValue">none</span></label><select id="patternPreset"><option value="">Choose…</option><option value="glider">Glider</option><option value="blinker">Blinker</option><option value="trafficLight">Traffic light</option><option value="lwss">Lightweight spaceship</option><option value="rPentomino">R-pentomino</option><option value="smallExploder">Small exploder</option><option value="acorn">Acorn</option><option value="diehard">Diehard</option><option value="block">Block</option><option value="toad">Toad</option><option value="pulsar">Pulsar</option><option value="beacon">Beacon</option><option value="clock">Clock</option><option value="pentadecathlon">Pentadecathlon</option><option value="gosperGun">Gosper glider gun</option><option value="random-soup">Random soup</option></select></div>
+          <div class="control"><label for="patternPreset"><span>Preset pattern</span><span id="patternPresetValue">none</span></label><select id="patternPreset"><option value="">Choose…</option><option value="glider">Glider</option><option value="blinker">Blinker</option><option value="trafficLight">Traffic light</option><option value="lwss">Lightweight spaceship</option><option value="rPentomino">R-pentomino</option><option value="smallExploder">Small exploder</option><option value="acorn">Acorn</option><option value="diehard">Diehard</option><option value="block">Block</option><option value="toad">Toad</option><option value="cross">Cross</option><option value="pulsar">Pulsar</option><option value="beacon">Beacon</option><option value="clock">Clock</option><option value="pentadecathlon">Pentadecathlon</option><option value="gosperGun">Gosper glider gun</option><option value="random-soup">Random soup</option></select></div>
           <div class="control"><label for="rulePreset"><span>Rule preset</span><span id="rulePresetValue">Classic-ish</span></label><select id="rulePreset" title="Rule presets tune survival, birth, and noise sliders together"><option value="classic">Classic-ish</option><option value="calm">Calm</option><option value="highlife">HighLife-ish</option><option value="spark">Spark</option><option value="chaotic">Chaotic</option><option value="">Custom</option></select></div>
           <div class="control"><label><span>Colour hue</span><span id="hueValue"></span></label><input id="hue" type="range" min="0" max="360" step="1" value="200"></div>
           <div class="control"><label><span>Saturation</span><span id="saturationValue"></span></label><input id="saturation" type="range" min="0" max="100" step="1" value="85"></div>

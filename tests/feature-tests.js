@@ -82,6 +82,7 @@ test('view reset, zoom status, and preset pattern controls exist', () => {
   assert.match(html, /value="diehard"/);
   assert.match(html, /value="block"/);
   assert.match(html, /value="toad"/);
+  assert.match(html, /value="cross"/);
   assert.match(html, /value="pulsar"/);
   assert.match(html, /value="beacon"/);
   assert.match(html, /value="clock"/);
@@ -102,6 +103,7 @@ test('preset labels show readable names instead of raw values', () => {
   assert.strictEqual(sandbox.window.__testPresetName('trafficLight'), 'Traffic light');
   assert.strictEqual(sandbox.window.__testPresetName('smallExploder'), 'Small exploder');
   assert.strictEqual(sandbox.window.__testPresetName('block'), 'Block');
+  assert.strictEqual(sandbox.window.__testPresetName('cross'), 'Cross');
   assert.strictEqual(sandbox.window.__testPresetName('pentadecathlon'), 'Pentadecathlon');
   assert.strictEqual(sandbox.window.__testPresetName('random-soup'), 'Random soup');
 });
@@ -259,6 +261,7 @@ test('preset patterns are centred and have expected live cell counts', () => {
   assert.strictEqual(sandbox.window.__testPattern('diehard', 50).length, 7);
   assert.strictEqual(sandbox.window.__testPattern('block', 50).length, 4);
   assert.strictEqual(sandbox.window.__testPattern('toad', 50).length, 6);
+  assert.strictEqual(sandbox.window.__testPattern('cross', 50).length, 9);
   assert.strictEqual(sandbox.window.__testPattern('pulsar', 50).length, 48);
   assert.strictEqual(sandbox.window.__testPattern('beacon', 50).length, 7);
   assert.strictEqual(sandbox.window.__testPattern('clock', 50).length, 8);
@@ -406,6 +409,23 @@ test('drawing avoids rainbow colour lookup when disco mode is off', () => {
 
 test('drawing avoids selected hue conversion while disco mode owns the palette', () => {
   assert.match(js, /const selectedLiveColour = discoMode[\s\S]*\? null[\s\S]*: hslToRgb/);
+});
+
+test('certain collapsed probabilities avoid random number work', () => {
+  const sandbox = { window: {}, console, Math };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testCollapseProbability = collapseProbability;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testCollapseProbability(0), 0);
+  assert.strictEqual(sandbox.window.__testCollapseProbability(1), 1);
+  assert.match(js, /collapsed\[i\] = collapseProbability\(grid\[i\]\);/);
+});
+
+test('changing stats use polite live regions for assistive technology', () => {
+  assert.match(html, /id="generation" aria-live="polite"/);
+  assert.match(html, /id="average" aria-live="polite"/);
+  assert.match(html, /id="liveCount" aria-live="polite"/);
+  assert.match(html, /id="runStatus" aria-live="polite"/);
 });
 
 test('guide grid batches line drawing into two strokes', () => {

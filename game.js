@@ -135,6 +135,7 @@ function displayPresetName(value) {
     diehard: 'Diehard',
     block: 'Block',
     toad: 'Toad',
+    cross: 'Cross',
     pulsar: 'Pulsar',
     beacon: 'Beacon',
     clock: 'Clock',
@@ -247,6 +248,7 @@ function patternCells(pattern, size) {
     diehard: [[-3, 0], [-2, 0], [-2, 1], [2, 1], [3, -1], [3, 1], [4, 1]],
     block: [[0, 0], [1, 0], [0, 1], [1, 1]],
     toad: [[0, -1], [1, -1], [2, -1], [-1, 0], [0, 0], [1, 0]],
+    cross: [[0, -2], [0, -1], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [0, 1], [0, 2]],
     pulsar: [
       [-4, -6], [-3, -6], [-2, -6], [2, -6], [3, -6], [4, -6],
       [-6, -4], [-1, -4], [1, -4], [6, -4],
@@ -287,6 +289,12 @@ function blendLiveCellColour(probability, liveColour, discoMode = false) {
 function populationPercent(liveCount, totalCells) {
   if (totalCells <= 0) return '0.0%';
   return `${((liveCount / totalCells) * 100).toFixed(1)}%`;
+}
+
+function collapseProbability(probability) {
+  if (probability <= 0) return 0;
+  if (probability >= 1) return 1;
+  return Math.random() < probability ? 1 : 0;
 }
 
 if (typeof document !== 'undefined') (() => {
@@ -466,7 +474,7 @@ if (typeof document !== 'undefined') (() => {
 
   function collapse() {
     for (let i = 0; i < grid.length; i++) {
-      collapsed[i] = Math.random() < grid[i] ? 1 : 0;
+      collapsed[i] = collapseProbability(grid[i]);
     }
   }
 
