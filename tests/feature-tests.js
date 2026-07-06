@@ -121,6 +121,7 @@ test('rule presets expose useful probability rule sets', () => {
   assert.match(html, /id="rulePresetValue"/);
   assert.match(html, /value="classic"/);
   assert.match(html, /value="calm"/);
+  assert.match(html, /value="highlife"/);
   assert.match(html, /value="spark"/);
   assert.match(html, /value="chaotic"/);
 
@@ -142,9 +143,22 @@ test('rule presets expose useful probability rule sets', () => {
     birth: 0.90,
     noise: 0.05
   });
+  assert.deepStrictEqual({ ...sandbox.window.__testRulePreset('highlife') }, {
+    under: 0.10,
+    survive: 0.92,
+    over: 0.70,
+    birth: 0.88,
+    noise: 0.01
+  });
   assert.strictEqual(sandbox.window.__testRulePresetName('classic'), 'Classic-ish');
+  assert.strictEqual(sandbox.window.__testRulePresetName('highlife'), 'HighLife-ish');
   assert.strictEqual(sandbox.window.__testRulePresetName(''), 'custom');
   assert.strictEqual(sandbox.window.__testRulePreset('missing'), null);
+});
+
+test('rule preset control explains that presets move related sliders together', () => {
+  assert.match(html, /Rule presets tune survival, birth, and noise sliders together/);
+  assert.match(html, /Rule presets move the survival, birth, and noise sliders together/);
 });
 
 test('random density and guide grid optimisation helpers exist', () => {
@@ -310,6 +324,17 @@ test('browser zoom state is constrained to a useful range', () => {
   assert.strictEqual(sandbox.window.__testPinch(1, 100, 150), 1.5);
   assert.strictEqual(sandbox.window.__testPinch(1.5, 150, 100), 1);
   assert.strictEqual(sandbox.window.__testPinch(4, 100, 150), 4);
+});
+
+test('no-op zoom input is ignored at zoom limits', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testShouldZoom = shouldApplyZoom;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testShouldZoom(4, 4), false);
+  assert.strictEqual(sandbox.window.__testShouldZoom(0.25, 0.25), false);
+  assert.strictEqual(sandbox.window.__testShouldZoom(1, 1.1), true);
+  assert.match(js, /if \(!shouldApplyZoom\(zoom, nextZoom\)\) return;/);
 });
 
 test('camera zoom keeps the touched grid point under the fingers', () => {

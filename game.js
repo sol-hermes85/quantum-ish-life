@@ -10,6 +10,7 @@ function nextCellAge(alive, previousAge, probability) {
 const RULE_PRESETS = {
   classic: { under: 0.10, survive: 0.90, over: 0.75, birth: 0.75, noise: 0.02 },
   calm: { under: 0.00, survive: 1.00, over: 0.00, birth: 1.00, noise: 0.00 },
+  highlife: { under: 0.10, survive: 0.92, over: 0.70, birth: 0.88, noise: 0.01 },
   spark: { under: 0.20, survive: 0.80, over: 0.35, birth: 0.90, noise: 0.05 },
   chaotic: { under: 0.35, survive: 0.70, over: 0.50, birth: 0.95, noise: 0.08 }
 };
@@ -23,6 +24,7 @@ function displayRulePresetName(value) {
     '': 'custom',
     classic: 'Classic-ish',
     calm: 'Calm',
+    highlife: 'HighLife-ish',
     spark: 'Spark',
     chaotic: 'Chaotic'
   };
@@ -73,6 +75,10 @@ function zoomViewAtPoint(currentZoom, nextZoom, panX, panY, anchorX, anchorY, ca
 
 function dragView(zoom, panX, panY, deltaX, deltaY, canvasWidth, canvasHeight) {
   return clampView(zoom, panX + deltaX, panY + deltaY, canvasWidth, canvasHeight);
+}
+
+function shouldApplyZoom(currentZoom, nextZoom) {
+  return currentZoom !== nextZoom;
 }
 
 function screenToGridPoint(screenX, screenY, size, canvasWidth, canvasHeight, zoom, panX, panY) {
@@ -703,6 +709,8 @@ if (typeof document !== 'undefined') (() => {
 
   function applyZoomDelta(delta) {
     const nextZoom = clampZoomLevel(zoom + delta);
+    if (!shouldApplyZoom(zoom, nextZoom)) return;
+
     const camera = zoomViewAtPoint(zoom, nextZoom, panX, panY, canvas.width / 2, canvas.height / 2, canvas.width, canvas.height);
     zoom = camera.zoom;
     panX = camera.panX;
@@ -862,6 +870,8 @@ if (typeof document !== 'undefined') (() => {
     const anchorX = ((e.clientX - r.left) / r.width) * canvas.width;
     const anchorY = ((e.clientY - r.top) / r.height) * canvas.height;
     const nextZoom = nextZoomLevel(zoom, e.deltaY);
+    if (!shouldApplyZoom(zoom, nextZoom)) return;
+
     const camera = zoomViewAtPoint(zoom, nextZoom, panX, panY, anchorX, anchorY, canvas.width, canvas.height);
     zoom = camera.zoom;
     panX = camera.panX;
