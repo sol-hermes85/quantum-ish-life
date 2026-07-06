@@ -133,6 +133,7 @@ function displayPresetName(value) {
     smallExploder: 'Small exploder',
     acorn: 'Acorn',
     diehard: 'Diehard',
+    loaf: 'Loaf',
     block: 'Block',
     toad: 'Toad',
     cross: 'Cross',
@@ -246,6 +247,7 @@ function patternCells(pattern, size) {
     smallExploder: [[0, -2], [-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [0, 1]],
     acorn: [[-3, 0], [-2, 0], [-2, -2], [1, -1], [2, 0], [3, 0], [4, 0]],
     diehard: [[-3, 0], [-2, 0], [-2, 1], [2, 1], [3, -1], [3, 1], [4, 1]],
+    loaf: [[0, -2], [1, -2], [-1, -1], [2, -1], [0, 0], [2, 0], [1, 1]],
     block: [[0, 0], [1, 0], [0, 1], [1, 1]],
     toad: [[0, -1], [1, -1], [2, -1], [-1, 0], [0, 0], [1, 0]],
     cross: [[0, -2], [0, -1], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [0, 1], [0, 2]],
@@ -494,7 +496,7 @@ if (typeof document !== 'undefined') (() => {
         const alive = collapsed[i] === 1;
         const age = alive ? ages[i] + 1 : 0;
         const n = countCollapsedNeighbours(collapsed, size, x, y);
-        let p = noise * Math.random();
+        let p = noise > 0 ? noise * Math.random() : 0;
 
         if (shouldCellAgeOut(age, ageLimit)) {
           p = 0;

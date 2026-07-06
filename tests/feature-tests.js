@@ -80,6 +80,7 @@ test('view reset, zoom status, and preset pattern controls exist', () => {
   assert.match(html, /value="smallExploder"/);
   assert.match(html, /value="acorn"/);
   assert.match(html, /value="diehard"/);
+  assert.match(html, /value="loaf"/);
   assert.match(html, /value="block"/);
   assert.match(html, /value="toad"/);
   assert.match(html, /value="cross"/);
@@ -102,6 +103,7 @@ test('preset labels show readable names instead of raw values', () => {
   assert.strictEqual(sandbox.window.__testPresetName('rPentomino'), 'R-pentomino');
   assert.strictEqual(sandbox.window.__testPresetName('trafficLight'), 'Traffic light');
   assert.strictEqual(sandbox.window.__testPresetName('smallExploder'), 'Small exploder');
+  assert.strictEqual(sandbox.window.__testPresetName('loaf'), 'Loaf');
   assert.strictEqual(sandbox.window.__testPresetName('block'), 'Block');
   assert.strictEqual(sandbox.window.__testPresetName('cross'), 'Cross');
   assert.strictEqual(sandbox.window.__testPresetName('pentadecathlon'), 'Pentadecathlon');
@@ -259,6 +261,7 @@ test('preset patterns are centred and have expected live cell counts', () => {
   assert.strictEqual(sandbox.window.__testPattern('smallExploder', 50).length, 7);
   assert.strictEqual(sandbox.window.__testPattern('acorn', 50).length, 7);
   assert.strictEqual(sandbox.window.__testPattern('diehard', 50).length, 7);
+  assert.strictEqual(sandbox.window.__testPattern('loaf', 50).length, 7);
   assert.strictEqual(sandbox.window.__testPattern('block', 50).length, 4);
   assert.strictEqual(sandbox.window.__testPattern('toad', 50).length, 6);
   assert.strictEqual(sandbox.window.__testPattern('cross', 50).length, 9);
@@ -419,6 +422,14 @@ test('certain collapsed probabilities avoid random number work', () => {
   assert.strictEqual(sandbox.window.__testCollapseProbability(0), 0);
   assert.strictEqual(sandbox.window.__testCollapseProbability(1), 1);
   assert.match(js, /collapsed\[i\] = collapseProbability\(grid\[i\]\);/);
+});
+
+test('zero noise avoids per-cell random number work in the simulation step', () => {
+  assert.match(js, /let p = noise > 0 \? noise \* Math\.random\(\) : 0;/);
+});
+
+test('pattern preset control warns that choosing a preset replaces the current grid', () => {
+  assert.match(html, /id="patternPreset"[^>]*title="Choosing a preset replaces the current grid"/);
 });
 
 test('changing stats use polite live regions for assistive technology', () => {
