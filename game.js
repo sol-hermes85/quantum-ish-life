@@ -137,6 +137,7 @@ function displayPresetName(value) {
     block: 'Block',
     toad: 'Toad',
     cross: 'Cross',
+    diamond: 'Diamond',
     pulsar: 'Pulsar',
     beacon: 'Beacon',
     clock: 'Clock',
@@ -251,6 +252,7 @@ function patternCells(pattern, size) {
     block: [[0, 0], [1, 0], [0, 1], [1, 1]],
     toad: [[0, -1], [1, -1], [2, -1], [-1, 0], [0, 0], [1, 0]],
     cross: [[0, -2], [0, -1], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [0, 1], [0, 2]],
+    diamond: [[0, -3], [-1, -2], [1, -2], [-2, -1], [2, -1], [-3, 0], [3, 0], [-2, 1], [2, 1], [-1, 2], [1, 2], [0, 3]],
     pulsar: [
       [-4, -6], [-3, -6], [-2, -6], [2, -6], [3, -6], [4, -6],
       [-6, -4], [-1, -4], [1, -4], [6, -4],
@@ -892,6 +894,7 @@ if (typeof document !== 'undefined') (() => {
   window.addEventListener('resize', resizeCanvasToWindow);
   window.addEventListener('keydown', e => {
     if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target?.tagName)) return;
+    if (e.repeat) return;
 
     const action = keyboardShortcutAction(e.key);
     if (!action) return;
