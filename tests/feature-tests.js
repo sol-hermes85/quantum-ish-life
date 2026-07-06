@@ -85,6 +85,7 @@ test('view reset, zoom status, and preset pattern controls exist', () => {
   assert.match(html, /value="toad"/);
   assert.match(html, /value="cross"/);
   assert.match(html, /value="diamond"/);
+  assert.match(html, /value="boat"/);
   assert.match(html, /value="pulsar"/);
   assert.match(html, /value="beacon"/);
   assert.match(html, /value="clock"/);
@@ -108,6 +109,7 @@ test('preset labels show readable names instead of raw values', () => {
   assert.strictEqual(sandbox.window.__testPresetName('block'), 'Block');
   assert.strictEqual(sandbox.window.__testPresetName('cross'), 'Cross');
   assert.strictEqual(sandbox.window.__testPresetName('diamond'), 'Diamond');
+  assert.strictEqual(sandbox.window.__testPresetName('boat'), 'Boat');
   assert.strictEqual(sandbox.window.__testPresetName('pentadecathlon'), 'Pentadecathlon');
   assert.strictEqual(sandbox.window.__testPresetName('random-soup'), 'Random soup');
 });
@@ -119,6 +121,7 @@ test('preset labels can include live cell counts for selected patterns', () => {
 
   assert.strictEqual(sandbox.window.__testPresetLabel('', 50), 'none');
   assert.strictEqual(sandbox.window.__testPresetLabel('random-soup', 50), 'Random soup');
+  assert.strictEqual(sandbox.window.__testPresetLabel('boat', 50), 'Boat (5 cells)');
   assert.strictEqual(sandbox.window.__testPresetLabel('pentadecathlon', 50), 'Pentadecathlon (12 cells)');
 });
 
@@ -268,6 +271,7 @@ test('preset patterns are centred and have expected live cell counts', () => {
   assert.strictEqual(sandbox.window.__testPattern('toad', 50).length, 6);
   assert.strictEqual(sandbox.window.__testPattern('cross', 50).length, 9);
   assert.strictEqual(sandbox.window.__testPattern('diamond', 50).length, 12);
+  assert.strictEqual(sandbox.window.__testPattern('boat', 50).length, 5);
   assert.strictEqual(sandbox.window.__testPattern('pulsar', 50).length, 48);
   assert.strictEqual(sandbox.window.__testPattern('beacon', 50).length, 7);
   assert.strictEqual(sandbox.window.__testPattern('clock', 50).length, 8);
@@ -299,6 +303,10 @@ test('live percentage helper formats the current filled area', () => {
   assert.strictEqual(sandbox.window.__testPopulationPercent(25, 100), '25.0%');
   assert.strictEqual(sandbox.window.__testPopulationPercent(1, 3), '33.3%');
   assert.strictEqual(sandbox.window.__testPopulationPercent(5, 0), '0.0%');
+});
+
+test('average stat label explains that it is a probability average', () => {
+  assert.match(html, /Avg probability:/);
 });
 
 test('cancelled pointers release capture to avoid stuck touch state', () => {
@@ -410,7 +418,17 @@ test('switching rule preset to custom refreshes the label', () => {
 });
 
 test('drawing avoids rainbow colour lookup when disco mode is off', () => {
-  assert.match(js, /const liveColour = discoMode \? rainbowCellColour\(i, generation\) : selectedLiveColour;/);
+  assert.match(js, /gridPixelColour\(p, i, generation, discoMode, selectedLiveColour\)/);
+  assert.match(js, /const liveColour = discoMode \? rainbowCellColour\(cellIndex, generation\) : selectedLiveColour;/);
+});
+
+test('drawing skips palette work for dead cells', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testGridPixelColour = gridPixelColour;`, sandbox);
+
+  assert.deepStrictEqual({ ...sandbox.window.__testGridPixelColour(0, 0, 0, true, null) }, { r: 255, g: 255, b: 255 });
+  assert.deepStrictEqual({ ...sandbox.window.__testGridPixelColour(1, 0, 0, false, { r: 10, g: 20, b: 30 }) }, { r: 10, g: 20, b: 30 });
 });
 
 test('drawing avoids selected hue conversion while disco mode owns the palette', () => {

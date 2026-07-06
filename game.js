@@ -138,6 +138,7 @@ function displayPresetName(value) {
     toad: 'Toad',
     cross: 'Cross',
     diamond: 'Diamond',
+    boat: 'Boat',
     pulsar: 'Pulsar',
     beacon: 'Beacon',
     clock: 'Clock',
@@ -253,6 +254,7 @@ function patternCells(pattern, size) {
     toad: [[0, -1], [1, -1], [2, -1], [-1, 0], [0, 0], [1, 0]],
     cross: [[0, -2], [0, -1], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [0, 1], [0, 2]],
     diamond: [[0, -3], [-1, -2], [1, -2], [-2, -1], [2, -1], [-3, 0], [3, 0], [-2, 1], [2, 1], [-1, 2], [1, 2], [0, 3]],
+    boat: [[0, -1], [1, -1], [-1, 0], [1, 0], [0, 1]],
     pulsar: [
       [-4, -6], [-3, -6], [-2, -6], [2, -6], [3, -6], [4, -6],
       [-6, -4], [-1, -4], [1, -4], [6, -4],
@@ -288,6 +290,13 @@ function blendLiveCellColour(probability, liveColour, discoMode = false) {
     g: Math.round(255 * (1 - p) + liveColour.g * p),
     b: Math.round(255 * (1 - p) + liveColour.b * p)
   };
+}
+
+function gridPixelColour(probability, cellIndex, generation, discoMode, selectedLiveColour) {
+  if (probability <= 0) return { r: 255, g: 255, b: 255 };
+
+  const liveColour = discoMode ? rainbowCellColour(cellIndex, generation) : selectedLiveColour;
+  return blendLiveCellColour(probability, liveColour, discoMode);
 }
 
 function populationPercent(liveCount, totalCells) {
@@ -538,8 +547,7 @@ if (typeof document !== 'undefined') (() => {
 
     for (let i = 0; i < grid.length; i++) {
       const p = grid[i];
-      const liveColour = discoMode ? rainbowCellColour(i, generation) : selectedLiveColour;
-      const colour = blendLiveCellColour(p, liveColour, discoMode);
+      const colour = gridPixelColour(p, i, generation, discoMode, selectedLiveColour);
       const o = i * 4;
 
       total += p;
