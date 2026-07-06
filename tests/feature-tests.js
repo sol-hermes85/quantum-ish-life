@@ -119,11 +119,12 @@ test('rule presets expose useful probability rule sets', () => {
   assert.match(html, /id="rulePresetValue"/);
   assert.match(html, /value="classic"/);
   assert.match(html, /value="calm"/);
+  assert.match(html, /value="spark"/);
   assert.match(html, /value="chaotic"/);
 
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
-  vm.runInContext(`${js}\nwindow.__testRulePreset = rulePresetValues;`, sandbox);
+  vm.runInContext(`${js}\nwindow.__testRulePreset = rulePresetValues; window.__testRulePresetName = displayRulePresetName;`, sandbox);
 
   assert.deepStrictEqual({ ...sandbox.window.__testRulePreset('calm') }, {
     under: 0,
@@ -132,6 +133,15 @@ test('rule presets expose useful probability rule sets', () => {
     birth: 1,
     noise: 0
   });
+  assert.deepStrictEqual({ ...sandbox.window.__testRulePreset('spark') }, {
+    under: 0.20,
+    survive: 0.80,
+    over: 0.35,
+    birth: 0.90,
+    noise: 0.05
+  });
+  assert.strictEqual(sandbox.window.__testRulePresetName('classic'), 'Classic-ish');
+  assert.strictEqual(sandbox.window.__testRulePresetName(''), 'custom');
   assert.strictEqual(sandbox.window.__testRulePreset('missing'), null);
 });
 
@@ -347,6 +357,10 @@ test('switching rule preset to custom refreshes the label', () => {
 
 test('drawing avoids rainbow colour lookup when disco mode is off', () => {
   assert.match(js, /const liveColour = discoMode \? rainbowCellColour\(i, generation\) : selectedLiveColour;/);
+});
+
+test('drawing avoids selected hue conversion while disco mode owns the palette', () => {
+  assert.match(js, /const selectedLiveColour = discoMode[\s\S]*\? null[\s\S]*: hslToRgb/);
 });
 
 test('guide grid batches line drawing into two strokes', () => {

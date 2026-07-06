@@ -23,7 +23,7 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 - **Reset view**: return zoom and pan to the default view; the current zoom level is shown in the stats panel
 - **Grid size**: change the simulation resolution
 - **Preset pattern**: seed a glider, blinker, lightweight spaceship, R-pentomino, small exploder, acorn, diehard, block, toad, pulsar, beacon, clock, pentadecathlon, Gosper glider gun, or random soup; selected patterns show their live cell count and stay selected when the grid size changes
-- **Rule preset**: quickly switch between classic-ish, calm, and chaotic probability rules
+- **Rule preset**: quickly switch between classic-ish, calm, spark, and chaotic probability rules; the active preset is shown with a readable label
 - **Random density**: control how full the random grid and random soup preset are
 - **Cell age limit**: set how many generations a living cell can survive before ageing out; `0` means cells never die of age
 - **Colour hue / saturation**: tune the colour used for live cells

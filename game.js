@@ -10,11 +10,24 @@ function nextCellAge(alive, previousAge, probability) {
 const RULE_PRESETS = {
   classic: { under: 0.10, survive: 0.90, over: 0.75, birth: 0.75, noise: 0.02 },
   calm: { under: 0.00, survive: 1.00, over: 0.00, birth: 1.00, noise: 0.00 },
+  spark: { under: 0.20, survive: 0.80, over: 0.35, birth: 0.90, noise: 0.05 },
   chaotic: { under: 0.35, survive: 0.70, over: 0.50, birth: 0.95, noise: 0.08 }
 };
 
 function rulePresetValues(name) {
   return RULE_PRESETS[name] || null;
+}
+
+function displayRulePresetName(value) {
+  const names = {
+    '': 'custom',
+    classic: 'Classic-ish',
+    calm: 'Calm',
+    spark: 'Spark',
+    chaotic: 'Chaotic'
+  };
+
+  return names[value] || value;
 }
 
 function clampZoomLevel(value) {
@@ -491,8 +504,10 @@ if (typeof document !== 'undefined') (() => {
     let total = 0;
     let liveCount = 0;
 
-    const selectedLiveColour = hslToRgb(Number(controls.hue.value), Number(controls.saturation.value) / 100, 0.45);
     const discoMode = controls.discoMode.checked;
+    const selectedLiveColour = discoMode
+      ? null
+      : hslToRgb(Number(controls.hue.value), Number(controls.saturation.value) / 100, 0.45);
 
     for (let i = 0; i < grid.length; i++) {
       const p = grid[i];
@@ -564,7 +579,7 @@ if (typeof document !== 'undefined') (() => {
     labels.ageLimit.textContent = controls.ageLimit.value === '0' ? 'never' : `${controls.ageLimit.value} gen`;
     labels.density.textContent = `${Math.round(Number(controls.density.value) * 100)}%`;
     labels.patternPreset.textContent = patternPresetLabel(controls.patternPreset.value, size);
-    labels.rulePreset.textContent = controls.rulePreset.value || 'custom';
+    labels.rulePreset.textContent = displayRulePresetName(controls.rulePreset.value);
     labels.hue.textContent = `${controls.hue.value}°`;
     labels.saturation.textContent = `${controls.saturation.value}%`;
     labels.discoMode.textContent = controls.discoMode.checked ? 'on' : 'off';
