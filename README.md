@@ -22,7 +22,7 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 - **Scroll wheel / + − buttons**: zoom in or out on the grid
 - **Reset view**: return zoom and pan to the default view; the current zoom level is shown in the stats panel
 - **Grid size**: change the simulation resolution
-- **Preset pattern**: seed a glider, blinker, traffic light, lightweight spaceship, R-pentomino, small exploder, acorn, diehard, loaf, block, toad, cross, diamond, boat, pulsar, beacon, clock, pentadecathlon, Gosper glider gun, or random soup; choosing a preset replaces the current grid, selected patterns show their live cell count, and stay selected when the grid size changes
+- **Preset pattern**: seed a glider, blinker, traffic light, lightweight spaceship, R-pentomino, small exploder, acorn, diehard, loaf, block, toad, cross, diamond, boat, tub, pulsar, beacon, clock, pentadecathlon, Gosper glider gun, or random soup; choosing a preset replaces the current grid, selected patterns show their live cell count, and stay selected when the grid size changes
 - **Rule preset**: quickly switch between classic-ish, calm, HighLife-ish, spark, and chaotic probability rules; the active preset is shown with a readable label and each preset moves the survival, birth, and noise sliders together
 - **Random density**: control how full the random grid and random soup preset are
 - **Cell age limit**: set how many generations a living cell can survive before ageing out; `0` means cells never die of age

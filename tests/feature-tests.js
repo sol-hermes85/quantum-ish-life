@@ -86,6 +86,7 @@ test('view reset, zoom status, and preset pattern controls exist', () => {
   assert.match(html, /value="cross"/);
   assert.match(html, /value="diamond"/);
   assert.match(html, /value="boat"/);
+  assert.match(html, /value="tub"/);
   assert.match(html, /value="pulsar"/);
   assert.match(html, /value="beacon"/);
   assert.match(html, /value="clock"/);
@@ -110,6 +111,7 @@ test('preset labels show readable names instead of raw values', () => {
   assert.strictEqual(sandbox.window.__testPresetName('cross'), 'Cross');
   assert.strictEqual(sandbox.window.__testPresetName('diamond'), 'Diamond');
   assert.strictEqual(sandbox.window.__testPresetName('boat'), 'Boat');
+  assert.strictEqual(sandbox.window.__testPresetName('tub'), 'Tub');
   assert.strictEqual(sandbox.window.__testPresetName('pentadecathlon'), 'Pentadecathlon');
   assert.strictEqual(sandbox.window.__testPresetName('random-soup'), 'Random soup');
 });
@@ -122,6 +124,7 @@ test('preset labels can include live cell counts for selected patterns', () => {
   assert.strictEqual(sandbox.window.__testPresetLabel('', 50), 'none');
   assert.strictEqual(sandbox.window.__testPresetLabel('random-soup', 50), 'Random soup');
   assert.strictEqual(sandbox.window.__testPresetLabel('boat', 50), 'Boat (5 cells)');
+  assert.strictEqual(sandbox.window.__testPresetLabel('tub', 50), 'Tub (4 cells)');
   assert.strictEqual(sandbox.window.__testPresetLabel('pentadecathlon', 50), 'Pentadecathlon (12 cells)');
 });
 
@@ -272,6 +275,7 @@ test('preset patterns are centred and have expected live cell counts', () => {
   assert.strictEqual(sandbox.window.__testPattern('cross', 50).length, 9);
   assert.strictEqual(sandbox.window.__testPattern('diamond', 50).length, 12);
   assert.strictEqual(sandbox.window.__testPattern('boat', 50).length, 5);
+  assert.strictEqual(sandbox.window.__testPattern('tub', 50).length, 4);
   assert.strictEqual(sandbox.window.__testPattern('pulsar', 50).length, 48);
   assert.strictEqual(sandbox.window.__testPattern('beacon', 50).length, 7);
   assert.strictEqual(sandbox.window.__testPattern('clock', 50).length, 8);
@@ -391,9 +395,18 @@ test('mobile zoom controls exist beside the grid', () => {
 
 test('common controls expose keyboard hints in button titles', () => {
   assert.match(html, /id="play"[^>]*title="Play or pause \(Space\)"/);
+  assert.match(html, /id="play"[^>]*aria-pressed="false"/);
   assert.match(html, /id="step"[^>]*title="Advance one generation \(S\)"/);
   assert.match(html, /id="zoomIn"[^>]*title="Zoom in \(\+\)"/);
   assert.match(html, /id="resetView"[^>]*title="Reset view \(Z\)"/);
+});
+
+test('play button announces its pressed state while the simulation runs', () => {
+  assert.match(js, /controls\.play\.setAttribute\('aria-pressed', String\(running\)\);/);
+});
+
+test('resize handler skips redraw work when the browser canvas size is unchanged', () => {
+  assert.match(js, /if \(canvas\.width === width && canvas\.height === height\) return;/);
 });
 
 test('keyboard users get visible focus outlines on controls', () => {

@@ -139,6 +139,7 @@ function displayPresetName(value) {
     cross: 'Cross',
     diamond: 'Diamond',
     boat: 'Boat',
+    tub: 'Tub',
     pulsar: 'Pulsar',
     beacon: 'Beacon',
     clock: 'Clock',
@@ -255,6 +256,7 @@ function patternCells(pattern, size) {
     cross: [[0, -2], [0, -1], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [0, 1], [0, 2]],
     diamond: [[0, -3], [-1, -2], [1, -2], [-2, -1], [2, -1], [-3, 0], [3, 0], [-2, 1], [2, 1], [-1, 2], [1, 2], [0, 3]],
     boat: [[0, -1], [1, -1], [-1, 0], [1, 0], [0, 1]],
+    tub: [[0, -2], [-1, -1], [1, -1], [0, 0]],
     pulsar: [
       [-4, -6], [-3, -6], [-2, -6], [2, -6], [3, -6], [4, -6],
       [-6, -4], [-1, -4], [1, -4], [6, -4],
@@ -413,15 +415,14 @@ if (typeof document !== 'undefined') (() => {
     const width = Math.max(1, Math.floor(window.innerWidth * dpr));
     const height = Math.max(1, Math.floor(window.innerHeight * dpr));
 
-    if (canvas.width !== width || canvas.height !== height) {
-      canvas.width = width;
-      canvas.height = height;
-      const camera = clampView(zoom, panX, panY, canvas.width, canvas.height);
-      zoom = camera.zoom;
-      panX = camera.panX;
-      panY = camera.panY;
-    }
+    if (canvas.width === width && canvas.height === height) return;
 
+    canvas.width = width;
+    canvas.height = height;
+    const camera = clampView(zoom, panX, panY, canvas.width, canvas.height);
+    zoom = camera.zoom;
+    panX = camera.panX;
+    panY = camera.panY;
     requestDraw();
   }
 
@@ -670,6 +671,7 @@ if (typeof document !== 'undefined') (() => {
     running = !running;
     controls.play.textContent = running ? 'Pause' : 'Play';
     controls.play.classList.toggle('primary', !running);
+    controls.play.setAttribute('aria-pressed', String(running));
     labels.runStatus.textContent = running ? 'Running' : 'Paused';
   }
 
