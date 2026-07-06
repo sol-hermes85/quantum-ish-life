@@ -121,6 +121,7 @@ function displayPresetName(value) {
     '': 'none',
     glider: 'Glider',
     blinker: 'Blinker',
+    trafficLight: 'Traffic light',
     lwss: 'Lightweight spaceship',
     rPentomino: 'R-pentomino',
     smallExploder: 'Small exploder',
@@ -232,6 +233,7 @@ function patternCells(pattern, size) {
   const patterns = {
     glider: [[0, -1], [1, 0], [-1, 1], [0, 1], [1, 1]],
     blinker: [[-1, 0], [0, 0], [1, 0]],
+    trafficLight: [[-1, -2], [0, -2], [1, -2], [-1, 0], [0, 0], [1, 0], [-1, 2], [0, 2], [1, 2]],
     lwss: [[0, -2], [3, -2], [-1, -1], [-1, 0], [3, 0], [-1, 1], [0, 1], [1, 1], [2, 1]],
     rPentomino: [[0, -1], [1, -1], [-1, 0], [0, 0], [0, 1]],
     smallExploder: [[0, -2], [-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [0, 1]],
@@ -435,7 +437,14 @@ if (typeof document !== 'undefined') (() => {
     requestDraw();
   }
 
-  function randomise() {
+  function resetPatternSelection() {
+    if (!controls.patternPreset.value) return;
+    controls.patternPreset.value = '';
+    updateLabels();
+  }
+
+  function randomise({ keepPreset = false } = {}) {
+    if (!keepPreset) resetPatternSelection();
     grid.fill(0);
     ages.fill(0);
 
@@ -639,6 +648,7 @@ if (typeof document !== 'undefined') (() => {
   }
 
   function clearGrid() {
+    resetPatternSelection();
     grid.fill(0);
     ages.fill(0);
     generation = 0;
@@ -646,6 +656,7 @@ if (typeof document !== 'undefined') (() => {
   }
 
   function invertGrid() {
+    resetPatternSelection();
     invertProbabilityGrid(grid, ages);
     generation = 0;
     requestDraw();
@@ -659,7 +670,7 @@ if (typeof document !== 'undefined') (() => {
 
   function applyPattern(pattern) {
     if (pattern === 'random-soup') {
-      randomise();
+      randomise({ keepPreset: true });
       return;
     }
 

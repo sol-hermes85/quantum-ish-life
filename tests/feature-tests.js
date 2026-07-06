@@ -74,6 +74,7 @@ test('view reset, zoom status, and preset pattern controls exist', () => {
   assert.match(html, /id="patternPreset"/);
   assert.match(html, /value="glider"/);
   assert.match(html, /value="blinker"/);
+  assert.match(html, /value="trafficLight"/);
   assert.match(html, /value="lwss"/);
   assert.match(html, /value="rPentomino"/);
   assert.match(html, /value="smallExploder"/);
@@ -98,6 +99,7 @@ test('preset labels show readable names instead of raw values', () => {
 
   assert.strictEqual(sandbox.window.__testPresetName(''), 'none');
   assert.strictEqual(sandbox.window.__testPresetName('rPentomino'), 'R-pentomino');
+  assert.strictEqual(sandbox.window.__testPresetName('trafficLight'), 'Traffic light');
   assert.strictEqual(sandbox.window.__testPresetName('smallExploder'), 'Small exploder');
   assert.strictEqual(sandbox.window.__testPresetName('block'), 'Block');
   assert.strictEqual(sandbox.window.__testPresetName('pentadecathlon'), 'Pentadecathlon');
@@ -235,6 +237,7 @@ test('preset patterns are centred and have expected live cell counts', () => {
 
   assert.strictEqual(sandbox.window.__testPattern('glider', 50).length, 5);
   assert.strictEqual(sandbox.window.__testPattern('blinker', 50).length, 3);
+  assert.strictEqual(sandbox.window.__testPattern('trafficLight', 50).length, 9);
   assert.strictEqual(sandbox.window.__testPattern('lwss', 50).length, 9);
   assert.strictEqual(sandbox.window.__testPattern('rPentomino', 50).length, 5);
   assert.strictEqual(sandbox.window.__testPattern('smallExploder', 50).length, 7);
@@ -349,6 +352,23 @@ test('common controls expose keyboard hints in button titles', () => {
   assert.match(html, /id="step"[^>]*title="Advance one generation \(S\)"/);
   assert.match(html, /id="zoomIn"[^>]*title="Zoom in \(\+\)"/);
   assert.match(html, /id="resetView"[^>]*title="Reset view \(Z\)"/);
+});
+
+test('keyboard users get visible focus outlines on controls', () => {
+  const css = fs.readFileSync('styles.css', 'utf8');
+  assert.match(css, /button:focus-visible/);
+  assert.match(css, /input:focus-visible/);
+  assert.match(css, /select:focus-visible/);
+  assert.match(css, /outline:\s*3px solid #7dd3fc/);
+});
+
+test('manual grid actions clear stale preset labels', () => {
+  assert.match(js, /function resetPatternSelection\(\)/);
+  assert.match(js, /function randomise\(\{ keepPreset = false \} = \{\}\)/);
+  assert.match(js, /if \(!keepPreset\) resetPatternSelection\(\);/);
+  assert.match(js, /randomise\(\{ keepPreset: true \}\);/);
+  assert.match(js, /function clearGrid\(\)[\s\S]*resetPatternSelection\(\);/);
+  assert.match(js, /function invertGrid\(\)[\s\S]*resetPatternSelection\(\);/);
 });
 
 test('switching rule preset to custom refreshes the label', () => {

@@ -124,6 +124,13 @@ button.primary {
   border-color: #eee;
 }
 
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid #7dd3fc;
+  outline-offset: 2px;
+}
+
 .panel {
   width: 100%;
   max-width: 360px;
