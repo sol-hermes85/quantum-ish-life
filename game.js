@@ -182,6 +182,11 @@ function zoomPercentLabel(value) {
   return `${Math.round(value * 100)}%`;
 }
 
+function pageTitleForState(running, generation) {
+  const status = running ? 'Running' : 'Paused';
+  return `${status} · Gen ${generation} · Quantum-ish Life`;
+}
+
 function shouldResetViewTap(previousTime, previousPoint, currentTime, currentPoint) {
   if (!previousTime || !previousPoint) return false;
   if (currentTime - previousTime > 320) return false;
@@ -460,6 +465,8 @@ if (typeof document !== 'undefined') (() => {
   let panY = 0;
   let controlsCollapsed = false;
   let labelsDirty = true;
+  let selectedLiveColour = hslToRgb(200, 0.85, 0.45);
+  let colourDirty = false;
   let hoverCell = null;
   const activePointers = new Map();
   let pinchStartDistance = 0;
@@ -620,13 +627,17 @@ if (typeof document !== 'undefined') (() => {
     let liveCount = 0;
 
     const discoMode = controls.discoMode.checked;
-    const selectedLiveColour = discoMode
+    if (!discoMode && colourDirty) {
+      selectedLiveColour = hslToRgb(Number(controls.hue.value), Number(controls.saturation.value) / 100, 0.45);
+      colourDirty = false;
+    }
+    const liveColour = discoMode
       ? null
-      : hslToRgb(Number(controls.hue.value), Number(controls.saturation.value) / 100, 0.45);
+      : selectedLiveColour;
 
     for (let i = 0; i < grid.length; i++) {
       const p = grid[i];
-      const colour = gridPixelColour(p, i, generation, discoMode, selectedLiveColour);
+      const colour = gridPixelColour(p, i, generation, discoMode, liveColour);
       const o = i * 4;
 
       total += p;
@@ -655,6 +666,7 @@ if (typeof document !== 'undefined') (() => {
     labels.livePercent.textContent = populationPercent(liveCount, grid.length);
     labels.zoomLevel.textContent = zoomPercentLabel(zoom);
     labels.runStatus.textContent = running ? 'Running' : 'Paused';
+    document.title = pageTitleForState(running, generation);
     if (labelsDirty) updateLabels();
   }
 
@@ -819,6 +831,7 @@ if (typeof document !== 'undefined') (() => {
     controls.play.classList.toggle('primary', !running);
     controls.play.setAttribute('aria-pressed', String(running));
     labels.runStatus.textContent = running ? 'Running' : 'Paused';
+    document.title = pageTitleForState(running, generation);
     showFeedback(running ? 'Running' : 'Paused');
   }
 
@@ -976,6 +989,7 @@ if (typeof document !== 'undefined') (() => {
       if (['under', 'survive', 'over', 'birth', 'noise'].includes(key)) {
         controls.rulePreset.value = '';
       }
+      if (key === 'hue' || key === 'saturation') colourDirty = true;
       updateLabels();
       requestDraw();
     });

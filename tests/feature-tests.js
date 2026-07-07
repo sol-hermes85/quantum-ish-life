@@ -369,6 +369,23 @@ test('zoom feedback uses the same rounded percent label as the stats panel', () 
   assert.match(html, /main mode or zoom changes/);
 });
 
+test('browser tab title reflects whether the simulation is running', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testPageTitle = pageTitleForState;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testPageTitle(false, 0), 'Paused · Gen 0 · Quantum-ish Life');
+  assert.strictEqual(sandbox.window.__testPageTitle(true, 12), 'Running · Gen 12 · Quantum-ish Life');
+  assert.match(js, /document\.title = pageTitleForState\(running, generation\);/);
+});
+
+test('motion polish respects reduced motion preferences', () => {
+  const css = fs.readFileSync('styles.css', 'utf8');
+  assert.match(css, /prefers-reduced-motion:\s*reduce/);
+  assert.match(css, /transition-duration:\s*0\.01ms !important/);
+  assert.match(css, /animation-duration:\s*0\.01ms !important/);
+});
+
 test('double-click or double-tap on the grid can reset the view', () => {
   assert.match(html, /Double-click or double-tap resets the view/);
   assert.match(html, /Double-tap the grid to reset the view/);
@@ -601,7 +618,7 @@ test('switching rule preset to custom refreshes the label', () => {
 });
 
 test('drawing avoids rainbow colour lookup when disco mode is off', () => {
-  assert.match(js, /gridPixelColour\(p, i, generation, discoMode, selectedLiveColour\)/);
+  assert.match(js, /gridPixelColour\(p, i, generation, discoMode, liveColour\)/);
   assert.match(js, /const liveColour = discoMode \? rainbowCellColour\(cellIndex, generation\) : selectedLiveColour;/);
 });
 
@@ -615,8 +632,12 @@ test('drawing skips palette work for dead cells', () => {
   assert.match(js, /if \(probability >= 1\) return liveColour;/);
 });
 
-test('drawing avoids selected hue conversion while disco mode owns the palette', () => {
-  assert.match(js, /const selectedLiveColour = discoMode[\s\S]*\? null[\s\S]*: hslToRgb/);
+test('drawing avoids repeated hue conversion and lets disco mode own the palette', () => {
+  assert.match(js, /let selectedLiveColour = hslToRgb/);
+  assert.match(js, /let colourDirty = false;/);
+  assert.match(js, /if \(!discoMode && colourDirty\)/);
+  assert.match(js, /const liveColour = discoMode[\s\S]*\? null[\s\S]*: selectedLiveColour/);
+  assert.match(js, /if \(key === 'hue' \|\| key === 'saturation'\) colourDirty = true;/);
 });
 
 test('certain collapsed probabilities avoid random number work', () => {
