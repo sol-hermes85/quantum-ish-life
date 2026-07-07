@@ -100,6 +100,41 @@ function shouldUpdateCell(currentProbability, tool) {
   return tool === 'erase' ? currentProbability !== 0 : currentProbability !== 1;
 }
 
+function effectivePaintTool(selectedTool, altKey) {
+  if (!altKey) return selectedTool;
+  return selectedTool === 'erase' ? 'paint' : 'erase';
+}
+
+function interpolatedGridPoints(from, to) {
+  if (!from || sameGridPoint(from, to)) return [to];
+
+  const points = [];
+  const dx = Math.abs(to.x - from.x);
+  const dy = Math.abs(to.y - from.y);
+  const sx = from.x < to.x ? 1 : -1;
+  const sy = from.y < to.y ? 1 : -1;
+  let error = dx - dy;
+  let x = from.x;
+  let y = from.y;
+
+  while (true) {
+    points.push({ x, y });
+    if (x === to.x && y === to.y) break;
+
+    const doubledError = error * 2;
+    if (doubledError > -dy) {
+      error -= dy;
+      x += sx;
+    }
+    if (doubledError < dx) {
+      error += dx;
+      y += sy;
+    }
+  }
+
+  return points;
+}
+
 function shouldPanPointer(event) {
   return event.button === 2 || event.shiftKey;
 }
@@ -401,6 +436,7 @@ if (typeof document !== 'undefined') (() => {
   let isDrawing = false;
   let isPanning = false;
   let lastPaintIndex = -1;
+  let lastPaintPoint = null;
   let lastPanPoint = { x: 0, y: 0 };
   let tool = 'paint';
   let drawQueued = false;
@@ -685,18 +721,31 @@ if (typeof document !== 'undefined') (() => {
     requestDraw();
   }
 
+  function paintPoint(point, paintTool) {
+    if (!isGridPointInside(point, size)) return false;
+
+    const i = idx(point.x, point.y);
+    if (i === lastPaintIndex) return false;
+    if (!shouldUpdateCell(grid[i], paintTool)) return false;
+
+    grid[i] = paintTool === 'erase' ? 0 : 1;
+    ages[i] = paintTool === 'erase' ? 0 : 1;
+    lastPaintIndex = i;
+    return true;
+  }
+
   function paint(e) {
     const p = canvasPoint(e);
     if (!isGridPointInside(p, size)) return;
 
-    const i = idx(p.x, p.y);
-    if (i === lastPaintIndex) return;
-    if (!shouldUpdateCell(grid[i], tool)) return;
+    const paintTool = effectivePaintTool(tool, e.altKey);
+    let changed = false;
+    for (const point of interpolatedGridPoints(lastPaintPoint, p)) {
+      changed = paintPoint(point, paintTool) || changed;
+    }
 
-    grid[i] = tool === 'erase' ? 0 : 1;
-    ages[i] = tool === 'erase' ? 0 : 1;
-    lastPaintIndex = i;
-    requestDraw();
+    lastPaintPoint = p;
+    if (changed) requestDraw();
   }
 
   function panFromPointer(e) {
@@ -713,6 +762,8 @@ if (typeof document !== 'undefined') (() => {
     tool = t;
     controls.paintMode.classList.toggle('primary', t === 'paint');
     controls.eraseMode.classList.toggle('primary', t === 'erase');
+    controls.paintMode.setAttribute('aria-pressed', String(t === 'paint'));
+    controls.eraseMode.setAttribute('aria-pressed', String(t === 'erase'));
     labels.toolStatus.textContent = t === 'paint' ? 'Paint' : 'Erase';
     showFeedback(t === 'paint' ? 'Paint mode' : 'Erase mode');
   }
@@ -936,6 +987,7 @@ if (typeof document !== 'undefined') (() => {
     isDrawing = true;
     hoverCell = null;
     lastPaintIndex = -1;
+    lastPaintPoint = null;
     paint(e);
   }, { passive: false });
 
@@ -982,6 +1034,7 @@ if (typeof document !== 'undefined') (() => {
     isDrawing = false;
     isPanning = false;
     lastPaintIndex = -1;
+    lastPaintPoint = null;
     releasePointer(e.pointerId);
   }, { passive: false });
 
@@ -990,6 +1043,7 @@ if (typeof document !== 'undefined') (() => {
     isDrawing = false;
     isPanning = false;
     lastPaintIndex = -1;
+    lastPaintPoint = null;
     releasePointer(e.pointerId);
   });
 

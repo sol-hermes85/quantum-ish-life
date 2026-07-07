@@ -295,6 +295,15 @@ test('stats expose the active drawing tool', () => {
   assert.match(js, /labels\.toolStatus\.textContent = t === 'paint' \? 'Paint' : 'Erase';/);
 });
 
+test('paint and erase buttons expose their selected state clearly', () => {
+  const css = fs.readFileSync('styles.css', 'utf8');
+  assert.match(html, /id="paintMode"[^>]*aria-pressed="true"/);
+  assert.match(html, /id="eraseMode"[^>]*aria-pressed="false"/);
+  assert.match(js, /controls\.paintMode\.setAttribute\('aria-pressed', String\(t === 'paint'\)\);/);
+  assert.match(js, /controls\.eraseMode\.setAttribute\('aria-pressed', String\(t === 'erase'\)\);/);
+  assert.match(css, /button\[aria-pressed="true"\]/);
+});
+
 test('simulation step counts neighbours directly without wrapper overhead', () => {
   assert.doesNotMatch(js, /function neighbours/);
   assert.match(js, /const n = countCollapsedNeighbours\(collapsed, size, x, y\);/);
@@ -394,7 +403,7 @@ test('desktop pointer users can pan without painting', () => {
 
 test('drag painting skips duplicate cell writes', () => {
   assert.match(js, /let lastPaintIndex = -1;/);
-  assert.match(js, /if \(i === lastPaintIndex\) return;/);
+  assert.match(js, /if \(i === lastPaintIndex\) return false;/);
   assert.match(js, /lastPaintIndex = i;/);
 });
 
@@ -408,7 +417,42 @@ test('painting skips cells already in the requested state', () => {
   assert.strictEqual(sandbox.window.__testShouldUpdateCell(1, 'paint'), false);
   assert.strictEqual(sandbox.window.__testShouldUpdateCell(0.5, 'paint'), true);
   assert.strictEqual(sandbox.window.__testShouldUpdateCell(0, 'erase'), false);
-  assert.match(js, /if \(!shouldUpdateCell\(grid\[i\], tool\)\) return;/);
+  assert.match(js, /if \(!shouldUpdateCell\(grid\[i\], paintTool\)\) return false;/);
+});
+
+test('alt-drag temporarily flips the active paint tool', () => {
+  assert.match(html, /Alt-drag temporarily flips paint and erase/);
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testEffectivePaintTool = effectivePaintTool;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testEffectivePaintTool('paint', false), 'paint');
+  assert.strictEqual(sandbox.window.__testEffectivePaintTool('paint', true), 'erase');
+  assert.strictEqual(sandbox.window.__testEffectivePaintTool('erase', true), 'paint');
+  assert.match(js, /const paintTool = effectivePaintTool\(tool, e\.altKey\);/);
+});
+
+test('fast drag painting interpolates grid cells so strokes do not leave gaps', () => {
+  assert.match(html, /Fast drags fill the gaps between cells/);
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testInterpolatedGridPoints = interpolatedGridPoints;`, sandbox);
+
+  const normalise = points => JSON.parse(JSON.stringify(points));
+
+  assert.deepStrictEqual(normalise(sandbox.window.__testInterpolatedGridPoints(null, { x: 2, y: 3 })), [{ x: 2, y: 3 }]);
+  assert.deepStrictEqual(normalise(sandbox.window.__testInterpolatedGridPoints({ x: 0, y: 0 }, { x: 3, y: 0 })), [
+    { x: 0, y: 0 },
+    { x: 1, y: 0 },
+    { x: 2, y: 0 },
+    { x: 3, y: 0 }
+  ]);
+  assert.deepStrictEqual(normalise(sandbox.window.__testInterpolatedGridPoints({ x: 0, y: 0 }, { x: 2, y: 2 })), [
+    { x: 0, y: 0 },
+    { x: 1, y: 1 },
+    { x: 2, y: 2 }
+  ]);
+  assert.match(js, /for \(const point of interpolatedGridPoints\(lastPaintPoint, p\)\)/);
 });
 
 test('desktop mouse hover previews the cell that will be painted', () => {

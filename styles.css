@@ -168,6 +168,10 @@ button.primary {
   border-color: #eee;
 }
 
+button[aria-pressed="true"] {
+  box-shadow: 0 0 0 2px rgba(125, 211, 252, 0.36), 0 8px 24px rgba(0, 0, 0, 0.24);
+}
+
 button:focus-visible,
 input:focus-visible,
 select:focus-visible {
