@@ -143,6 +143,10 @@ function shouldDrawGuideGrid(cellWidth, cellHeight) {
   return Math.min(cellWidth, cellHeight) >= 6;
 }
 
+function isRectVisible(x, y, width, height, viewportWidth, viewportHeight) {
+  return x < viewportWidth && y < viewportHeight && x + width > 0 && y + height > 0;
+}
+
 function visibleGridLineRange(start, cellSize, totalCells, viewportSize) {
   if (cellSize <= 0 || totalCells <= 0 || viewportSize <= 0) {
     return { first: 0, last: 0 };
@@ -172,6 +176,17 @@ function keyboardShortcutAction(key) {
   };
 
   return shortcuts[String(key).toLowerCase()] || null;
+}
+
+function zoomPercentLabel(value) {
+  return `${Math.round(value * 100)}%`;
+}
+
+function shouldResetViewTap(previousTime, previousPoint, currentTime, currentPoint) {
+  if (!previousTime || !previousPoint) return false;
+  if (currentTime - previousTime > 320) return false;
+
+  return distanceSquared(currentPoint.x - previousPoint.x, currentPoint.y - previousPoint.y) <= 24 ** 2;
 }
 
 function displayPresetName(value) {
@@ -453,6 +468,9 @@ if (typeof document !== 'undefined') (() => {
   let pinchStartPanY = 0;
   let pinchStartMidpoint = { x: 0, y: 0 };
   let feedbackTimer = 0;
+  let lastTapTime = 0;
+  let lastTapPoint = null;
+  let tapCandidate = null;
 
   const bufferCanvas = document.createElement('canvas');
   const bufferCtx = bufferCanvas.getContext('2d', { alpha: false });
@@ -635,7 +653,7 @@ if (typeof document !== 'undefined') (() => {
     labels.average.textContent = (total / grid.length).toFixed(3);
     labels.liveCount.textContent = liveCount;
     labels.livePercent.textContent = populationPercent(liveCount, grid.length);
-    labels.zoomLevel.textContent = `${Math.round(zoom * 100)}%`;
+    labels.zoomLevel.textContent = zoomPercentLabel(zoom);
     labels.runStatus.textContent = running ? 'Running' : 'Paused';
     if (labelsDirty) updateLabels();
   }
@@ -680,6 +698,8 @@ if (typeof document !== 'undefined') (() => {
 
     const x = panX + hoverCell.x * cellX;
     const y = panY + hoverCell.y * cellY;
+    if (!isRectVisible(x, y, cellX, cellY, canvas.width, canvas.height)) return;
+
     ctx.fillStyle = tool === 'erase' ? 'rgba(20,20,20,0.10)' : 'rgba(255,255,255,0.28)';
     ctx.strokeStyle = tool === 'erase' ? 'rgba(20,20,20,0.72)' : 'rgba(255,255,255,0.92)';
     ctx.lineWidth = Math.max(1, Math.min(3, Math.round(Math.min(cellX, cellY) * 0.12)));
@@ -864,6 +884,7 @@ if (typeof document !== 'undefined') (() => {
     zoom = camera.zoom;
     panX = camera.panX;
     panY = camera.panY;
+    showFeedback(`Zoom ${zoomPercentLabel(zoom)}`);
     requestDraw();
   }
 
@@ -968,6 +989,7 @@ if (typeof document !== 'undefined') (() => {
     if (activePointers.size >= 2) {
       isDrawing = false;
       isPanning = false;
+      tapCandidate = null;
       pinchStartDistance = pointerDistance();
       pinchStartZoom = zoom;
       pinchStartPanX = panX;
@@ -980,9 +1002,21 @@ if (typeof document !== 'undefined') (() => {
       hoverCell = null;
       isDrawing = false;
       isPanning = true;
+      tapCandidate = null;
       lastPanPoint = toCanvasPoint(e);
       return;
     }
+
+    const tapPoint = toCanvasPoint(e);
+    const tapTime = e.timeStamp || Date.now();
+    if (shouldResetViewTap(lastTapTime, lastTapPoint, tapTime, tapPoint)) {
+      lastTapTime = 0;
+      lastTapPoint = null;
+      tapCandidate = null;
+      resetView();
+      return;
+    }
+    tapCandidate = { pointerId: e.pointerId, time: tapTime, point: tapPoint };
 
     isDrawing = true;
     hoverCell = null;
@@ -1015,6 +1049,12 @@ if (typeof document !== 'undefined') (() => {
 
     if (!isDrawing) return;
     e.preventDefault();
+    if (tapCandidate?.pointerId === e.pointerId) {
+      const current = toCanvasPoint(e);
+      if (distanceSquared(current.x - tapCandidate.point.x, current.y - tapCandidate.point.y) > 24 ** 2) {
+        tapCandidate = null;
+      }
+    }
     paint(e);
   }, { passive: false });
 
@@ -1035,6 +1075,11 @@ if (typeof document !== 'undefined') (() => {
     isPanning = false;
     lastPaintIndex = -1;
     lastPaintPoint = null;
+    if (tapCandidate?.pointerId === e.pointerId) {
+      lastTapTime = tapCandidate.time;
+      lastTapPoint = tapCandidate.point;
+      tapCandidate = null;
+    }
     releasePointer(e.pointerId);
   }, { passive: false });
 
@@ -1044,6 +1089,7 @@ if (typeof document !== 'undefined') (() => {
     isPanning = false;
     lastPaintIndex = -1;
     lastPaintPoint = null;
+    if (tapCandidate?.pointerId === e.pointerId) tapCandidate = null;
     releasePointer(e.pointerId);
   });
 
@@ -1061,6 +1107,7 @@ if (typeof document !== 'undefined') (() => {
     zoom = camera.zoom;
     panX = camera.panX;
     panY = camera.panY;
+    showFeedback(`Zoom ${zoomPercentLabel(zoom)}`);
     requestDraw();
   }, { passive: false });
 

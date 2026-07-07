@@ -357,6 +357,33 @@ test('browser zoom state is constrained to a useful range', () => {
   assert.strictEqual(sandbox.window.__testPinch(4, 100, 150), 4);
 });
 
+test('zoom feedback uses the same rounded percent label as the stats panel', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testZoomPercent = zoomPercentLabel;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testZoomPercent(1), '100%');
+  assert.strictEqual(sandbox.window.__testZoomPercent(1.234), '123%');
+  assert.match(js, /labels\.zoomLevel\.textContent = zoomPercentLabel\(zoom\);/);
+  assert.match(js, /showFeedback\(`Zoom \$\{zoomPercentLabel\(zoom\)\}`\);/);
+  assert.match(html, /main mode or zoom changes/);
+});
+
+test('double-click or double-tap on the grid can reset the view', () => {
+  assert.match(html, /Double-click or double-tap resets the view/);
+  assert.match(html, /Double-tap the grid to reset the view/);
+  assert.match(js, /function shouldResetViewTap/);
+  assert.match(js, /resetView\(\);/);
+
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testResetTap = shouldResetViewTap;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testResetTap(100, { x: 20, y: 20 }, 300, { x: 30, y: 30 }), true);
+  assert.strictEqual(sandbox.window.__testResetTap(100, { x: 20, y: 20 }, 500, { x: 30, y: 30 }), false);
+  assert.strictEqual(sandbox.window.__testResetTap(100, { x: 20, y: 20 }, 300, { x: 80, y: 20 }), false);
+});
+
 test('no-op zoom input is ignored at zoom limits', () => {
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
@@ -478,6 +505,18 @@ test('hover preview avoids redraws while the mouse remains in the same cell', ()
   assert.strictEqual(sandbox.window.__testSameGridPoint({ x: 2, y: 3 }, { x: 3, y: 3 }), false);
   assert.strictEqual(sandbox.window.__testSameGridPoint(null, { x: 2, y: 3 }), false);
   assert.match(js, /if \(sameGridPoint\(hoverCell, nextHoverCell\)\) return;/);
+});
+
+test('hover preview skips cells outside the visible canvas', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testVisibleRect = isRectVisible;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testVisibleRect(10, 10, 20, 20, 100, 100), true);
+  assert.strictEqual(sandbox.window.__testVisibleRect(-10, 10, 20, 20, 100, 100), true);
+  assert.strictEqual(sandbox.window.__testVisibleRect(-30, 10, 20, 20, 100, 100), false);
+  assert.strictEqual(sandbox.window.__testVisibleRect(100, 10, 20, 20, 100, 100), false);
+  assert.match(js, /if \(!isRectVisible\(x, y, cellX, cellY, canvas\.width, canvas\.height\)\) return;/);
 });
 
 test('mode changes can show brief feedback over the grid', () => {
