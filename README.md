@@ -17,7 +17,7 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 - **Random**: seed a random grid
 - **Invert**: flip the current probability grid so empty areas become alive and live areas become empty
 - **Clear**: reset the grid
-- **One finger drag**: paint or erase cells
+- **One finger drag**: paint or erase cells; desktop mouse users get a cell preview before painting
 - **Two finger pinch / drag**: zoom and pan around the grid
 - **Shift-drag / right-drag**: pan the grid with a mouse or trackpad without painting
 - **Scroll wheel / + − buttons**: zoom in or out on the grid

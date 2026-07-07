@@ -88,6 +88,14 @@ function screenToGridPoint(screenX, screenY, size, canvasWidth, canvasHeight, zo
   };
 }
 
+function isGridPointInside(point, size) {
+  return point.x >= 0 && point.x < size && point.y >= 0 && point.y < size;
+}
+
+function shouldUpdateCell(currentProbability, tool) {
+  return tool === 'erase' ? currentProbability !== 0 : currentProbability !== 1;
+}
+
 function shouldPanPointer(event) {
   return event.button === 2 || event.shiftKey;
 }
@@ -394,6 +402,7 @@ if (typeof document !== 'undefined') (() => {
   let panY = 0;
   let controlsCollapsed = false;
   let labelsDirty = true;
+  let hoverCell = null;
   const activePointers = new Map();
   let pinchStartDistance = 0;
   let pinchStartZoom = 1;
@@ -576,6 +585,7 @@ if (typeof document !== 'undefined') (() => {
 
     ctx.drawImage(bufferCanvas, panX, panY, drawWidth, drawHeight);
     drawGuideGrid();
+    drawHoverPreview();
 
     labels.generation.textContent = generation;
     labels.average.textContent = (total / grid.length).toFixed(3);
@@ -617,6 +627,20 @@ if (typeof document !== 'undefined') (() => {
     ctx.stroke();
   }
 
+  function drawHoverPreview() {
+    if (!hoverCell) return;
+
+    const cellX = (canvas.width * zoom) / size;
+    const cellY = (canvas.height * zoom) / size;
+    if (Math.min(cellX, cellY) < 4) return;
+
+    const x = panX + hoverCell.x * cellX;
+    const y = panY + hoverCell.y * cellY;
+    ctx.strokeStyle = tool === 'erase' ? 'rgba(20,20,20,0.72)' : 'rgba(255,255,255,0.92)';
+    ctx.lineWidth = Math.max(1, Math.min(3, Math.round(Math.min(cellX, cellY) * 0.12)));
+    ctx.strokeRect(x + 1, y + 1, Math.max(1, cellX - 2), Math.max(1, cellY - 2));
+  }
+
   function updateLabels() {
     labels.gridSize.textContent = `${size} × ${size}`;
     labels.ageLimit.textContent = controls.ageLimit.value === '0' ? 'never' : `${controls.ageLimit.value} gen`;
@@ -642,12 +666,19 @@ if (typeof document !== 'undefined') (() => {
     return screenToGridPoint(screenX, screenY, size, canvas.width, canvas.height, zoom, panX, panY);
   }
 
+  function updateHoverCell(e) {
+    const point = canvasPoint(e);
+    hoverCell = isGridPointInside(point, size) ? point : null;
+    requestDraw();
+  }
+
   function paint(e) {
     const p = canvasPoint(e);
-    if (p.x < 0 || p.x >= size || p.y < 0 || p.y >= size) return;
+    if (!isGridPointInside(p, size)) return;
 
     const i = idx(p.x, p.y);
     if (i === lastPaintIndex) return;
+    if (!shouldUpdateCell(grid[i], tool)) return;
 
     grid[i] = tool === 'erase' ? 0 : 1;
     ages[i] = tool === 'erase' ? 0 : 1;
@@ -870,6 +901,7 @@ if (typeof document !== 'undefined') (() => {
     }
 
     if (shouldPanPointer(e)) {
+      hoverCell = null;
       isDrawing = false;
       isPanning = true;
       lastPanPoint = toCanvasPoint(e);
@@ -877,6 +909,7 @@ if (typeof document !== 'undefined') (() => {
     }
 
     isDrawing = true;
+    hoverCell = null;
     lastPaintIndex = -1;
     paint(e);
   }, { passive: false });
@@ -907,6 +940,16 @@ if (typeof document !== 'undefined') (() => {
     e.preventDefault();
     paint(e);
   }, { passive: false });
+
+  canvas.addEventListener('pointermove', e => {
+    if (activePointers.size > 0 || e.pointerType !== 'mouse') return;
+    updateHoverCell(e);
+  });
+
+  canvas.addEventListener('pointerleave', () => {
+    hoverCell = null;
+    requestDraw();
+  });
 
   canvas.addEventListener('pointerup', e => {
     e.preventDefault();

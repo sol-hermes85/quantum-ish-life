@@ -43,6 +43,14 @@ p {
   touch-action: none;
 }
 
+.canvasShell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at center, transparent 62%, rgba(16, 16, 16, 0.16) 100%);
+}
+
 canvas {
   display: block;
   width: 100%;

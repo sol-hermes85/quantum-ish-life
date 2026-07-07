@@ -397,6 +397,34 @@ test('drag painting skips duplicate cell writes', () => {
   assert.match(js, /lastPaintIndex = i;/);
 });
 
+test('painting skips cells already in the requested state', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testInside = isGridPointInside; window.__testShouldUpdateCell = shouldUpdateCell;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testInside({ x: 0, y: 0 }, 50), true);
+  assert.strictEqual(sandbox.window.__testInside({ x: 50, y: 0 }, 50), false);
+  assert.strictEqual(sandbox.window.__testShouldUpdateCell(1, 'paint'), false);
+  assert.strictEqual(sandbox.window.__testShouldUpdateCell(0.5, 'paint'), true);
+  assert.strictEqual(sandbox.window.__testShouldUpdateCell(0, 'erase'), false);
+  assert.match(js, /if \(!shouldUpdateCell\(grid\[i\], tool\)\) return;/);
+});
+
+test('desktop mouse hover previews the cell that will be painted', () => {
+  assert.match(js, /let hoverCell = null;/);
+  assert.match(js, /function drawHoverPreview/);
+  assert.match(js, /function updateHoverCell/);
+  assert.match(js, /e\.pointerType !== 'mouse'/);
+  assert.match(js, /ctx\.strokeRect/);
+});
+
+test('canvas has a subtle vignette so the full-screen grid feels less stark', () => {
+  const css = fs.readFileSync('styles.css', 'utf8');
+  assert.match(css, /\.canvasShell::after/);
+  assert.match(css, /radial-gradient/);
+  assert.match(css, /pointer-events:\s*none/);
+});
+
 test('mobile zoom controls exist beside the grid', () => {
   const css = fs.readFileSync('styles.css', 'utf8');
   assert.match(html, /id="zoomIn"/);
@@ -543,7 +571,8 @@ test('game initialises against a browser-sized canvas without runtime errors', (
     beginPath: () => {},
     moveTo: () => {},
     lineTo: () => {},
-    stroke: () => {}
+    stroke: () => {},
+    strokeRect: () => {}
   };
 
   function makeElement(id) {
