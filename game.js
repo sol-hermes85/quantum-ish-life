@@ -92,6 +92,10 @@ function isGridPointInside(point, size) {
   return point.x >= 0 && point.x < size && point.y >= 0 && point.y < size;
 }
 
+function sameGridPoint(a, b) {
+  return Boolean(a && b && a.x === b.x && a.y === b.y);
+}
+
 function shouldUpdateCell(currentProbability, tool) {
   return tool === 'erase' ? currentProbability !== 0 : currentProbability !== 1;
 }
@@ -340,6 +344,7 @@ if (typeof document !== 'undefined') (() => {
     zoomIn: $('zoomIn'),
     zoomOut: $('zoomOut'),
     resetView: $('resetView'),
+    feedback: $('feedback'),
     panel: $('controlsPanel'),
     controlsToggle: $('controlsToggle'),
     gridSize: $('gridSize'),
@@ -409,6 +414,7 @@ if (typeof document !== 'undefined') (() => {
   let pinchStartPanX = 0;
   let pinchStartPanY = 0;
   let pinchStartMidpoint = { x: 0, y: 0 };
+  let feedbackTimer = 0;
 
   const bufferCanvas = document.createElement('canvas');
   const bufferCtx = bufferCanvas.getContext('2d', { alpha: false });
@@ -668,7 +674,10 @@ if (typeof document !== 'undefined') (() => {
 
   function updateHoverCell(e) {
     const point = canvasPoint(e);
-    hoverCell = isGridPointInside(point, size) ? point : null;
+    const nextHoverCell = isGridPointInside(point, size) ? point : null;
+    if (sameGridPoint(hoverCell, nextHoverCell)) return;
+
+    hoverCell = nextHoverCell;
     requestDraw();
   }
 
@@ -701,6 +710,16 @@ if (typeof document !== 'undefined') (() => {
     controls.paintMode.classList.toggle('primary', t === 'paint');
     controls.eraseMode.classList.toggle('primary', t === 'erase');
     labels.toolStatus.textContent = t === 'paint' ? 'Paint' : 'Erase';
+    showFeedback(t === 'paint' ? 'Paint mode' : 'Erase mode');
+  }
+
+  function showFeedback(message) {
+    controls.feedback.textContent = message;
+    controls.feedback.classList.add('visible');
+    clearTimeout(feedbackTimer);
+    feedbackTimer = setTimeout(() => {
+      controls.feedback.classList.remove('visible');
+    }, 900);
   }
 
   function setControlsCollapsed(collapsed) {
@@ -715,6 +734,7 @@ if (typeof document !== 'undefined') (() => {
     zoom = camera.zoom;
     panX = camera.panX;
     panY = camera.panY;
+    showFeedback('View reset');
     requestDraw();
   }
 
@@ -724,6 +744,7 @@ if (typeof document !== 'undefined') (() => {
     controls.play.classList.toggle('primary', !running);
     controls.play.setAttribute('aria-pressed', String(running));
     labels.runStatus.textContent = running ? 'Running' : 'Paused';
+    showFeedback(running ? 'Running' : 'Paused');
   }
 
   function clearGrid() {

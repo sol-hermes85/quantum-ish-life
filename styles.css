@@ -83,6 +83,33 @@ canvas {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
 }
 
+.feedback {
+  position: fixed;
+  left: 50%;
+  top: max(14px, env(safe-area-inset-top));
+  z-index: 2;
+  transform: translate(-50%, -8px);
+  min-width: 92px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(16, 16, 16, 0.74);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #f2f2f2;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.feedback.visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
 .ui {
   position: fixed;
   top: max(12px, env(safe-area-inset-top));
@@ -124,6 +151,15 @@ button {
   border-radius: 9px;
   font-weight: 700;
   font-size: 0.84rem;
+  transition: background-color 140ms ease, border-color 140ms ease, transform 120ms ease;
+}
+
+button:hover {
+  border-color: #888;
+}
+
+button:active {
+  transform: translateY(1px);
 }
 
 button.primary {
@@ -150,6 +186,7 @@ select:focus-visible {
   padding: 10px;
   backdrop-filter: blur(6px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  transition: max-height 180ms ease, background-color 180ms ease;
 }
 
 .panelToggle {
@@ -282,5 +319,9 @@ select {
   .panel {
     max-width: none;
     max-height: 34vh;
+  }
+
+  .feedback {
+    top: max(8px, env(safe-area-inset-top));
   }
 }

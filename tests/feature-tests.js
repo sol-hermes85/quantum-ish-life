@@ -418,6 +418,36 @@ test('desktop mouse hover previews the cell that will be painted', () => {
   assert.match(js, /ctx\.strokeRect/);
 });
 
+test('hover preview avoids redraws while the mouse remains in the same cell', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testSameGridPoint = sameGridPoint;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testSameGridPoint({ x: 2, y: 3 }, { x: 2, y: 3 }), true);
+  assert.strictEqual(sandbox.window.__testSameGridPoint({ x: 2, y: 3 }, { x: 3, y: 3 }), false);
+  assert.strictEqual(sandbox.window.__testSameGridPoint(null, { x: 2, y: 3 }), false);
+  assert.match(js, /if \(sameGridPoint\(hoverCell, nextHoverCell\)\) return;/);
+});
+
+test('mode changes can show brief feedback over the grid', () => {
+  assert.match(html, /id="feedback"/);
+  assert.match(html, /aria-atomic="true"/);
+  assert.match(html, /Brief feedback appears over the grid/);
+  assert.match(js, /function showFeedback/);
+  assert.match(js, /showFeedback\(running \? 'Running' : 'Paused'\)/);
+  assert.match(js, /showFeedback\('View reset'\)/);
+  assert.match(js, /showFeedback\(t === 'paint' \? 'Paint mode' : 'Erase mode'\)/);
+});
+
+test('controls have subtle motion polish without moving the grid', () => {
+  const css = fs.readFileSync('styles.css', 'utf8');
+  assert.match(css, /\.feedback\s*{/);
+  assert.match(css, /\.feedback\.visible/);
+  assert.match(css, /transition:\s*opacity 160ms ease, transform 160ms ease/);
+  assert.match(css, /button:active/);
+  assert.match(css, /transition:\s*max-height 180ms ease, background-color 180ms ease/);
+});
+
 test('canvas has a subtle vignette so the full-screen grid feels less stark', () => {
   const css = fs.readFileSync('styles.css', 'utf8');
   assert.match(css, /\.canvasShell::after/);
@@ -581,7 +611,7 @@ test('game initialises against a browser-sized canvas without runtime errors', (
       value: ({ gridSize: '50', ageLimit: '5', density: '0.28', patternPreset: '', rulePreset: 'classic', hue: '200', saturation: '85', speed: '8', under: '0.10', survive: '0.90', over: '0.75', birth: '0.75', noise: '0.02' })[id] || '',
       checked: false,
       textContent: '',
-      classList: { toggle: () => {} },
+      classList: { toggle: () => {}, add: () => {}, remove: () => {} },
       addEventListener: () => {},
       setPointerCapture: () => {},
       releasePointerCapture: () => {},
@@ -597,6 +627,8 @@ test('game initialises against a browser-sized canvas without runtime errors', (
     Uint8Array,
     Uint16Array,
     Math,
+    clearTimeout: () => {},
+    setTimeout: () => 1,
     window: {
       innerWidth: 1200,
       innerHeight: 800,

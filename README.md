@@ -30,7 +30,7 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 - **Colour hue / saturation**: tune the colour used for live cells
 - **Disco mode**: cycle cells through the seven rainbow colours, changing each generation
 - **Speed**: generations per second
-- **Tool**: shows whether drag will paint or erase cells
+- **Tool**: shows whether drag will paint or erase cells; play, pause, tool, and reset-view changes also show a brief feedback pill over the grid
 - **Avg probability**: shows the average live probability across the grid
 - **Live count**: shows how many cells currently have at least 50% live probability
 - **Fill**: shows that live count as a percentage of the current grid
