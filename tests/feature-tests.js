@@ -229,7 +229,7 @@ test('invert control flips probabilities and keeps ages sensible', () => {
 });
 
 test('keyboard shortcuts expose common actions', () => {
-  assert.match(html, /Space play\/pause/);
+  assert.match(html, /Space\/P play\/pause/);
   assert.match(html, /I invert/);
   assert.match(html, /D disco/);
   assert.match(html, /E paint\/erase/);
@@ -242,6 +242,7 @@ test('keyboard shortcuts expose common actions', () => {
   vm.runInContext(`${js}\nwindow.__testShortcut = keyboardShortcutAction;`, sandbox);
 
   assert.strictEqual(sandbox.window.__testShortcut(' '), 'play');
+  assert.strictEqual(sandbox.window.__testShortcut('p'), 'play');
   assert.strictEqual(sandbox.window.__testShortcut('S'), 'step');
   assert.strictEqual(sandbox.window.__testShortcut('r'), 'randomise');
   assert.strictEqual(sandbox.window.__testShortcut('c'), 'clear');
@@ -415,7 +416,13 @@ test('desktop mouse hover previews the cell that will be painted', () => {
   assert.match(js, /function drawHoverPreview/);
   assert.match(js, /function updateHoverCell/);
   assert.match(js, /e\.pointerType !== 'mouse'/);
+  assert.match(js, /ctx\.fillRect/);
   assert.match(js, /ctx\.strokeRect/);
+});
+
+test('hover preview fills the target cell so the paint target is easier to see', () => {
+  assert.match(js, /ctx\.fillStyle = tool === 'erase'/);
+  assert.match(js, /rgba\(255,255,255,0\.28\)/);
 });
 
 test('hover preview avoids redraws while the mouse remains in the same cell', () => {
@@ -522,6 +529,7 @@ test('drawing skips palette work for dead cells', () => {
 
   assert.deepStrictEqual({ ...sandbox.window.__testGridPixelColour(0, 0, 0, true, null) }, { r: 255, g: 255, b: 255 });
   assert.deepStrictEqual({ ...sandbox.window.__testGridPixelColour(1, 0, 0, false, { r: 10, g: 20, b: 30 }) }, { r: 10, g: 20, b: 30 });
+  assert.match(js, /if \(probability >= 1\) return liveColour;/);
 });
 
 test('drawing avoids selected hue conversion while disco mode owns the palette', () => {
@@ -602,6 +610,7 @@ test('game initialises against a browser-sized canvas without runtime errors', (
     moveTo: () => {},
     lineTo: () => {},
     stroke: () => {},
+    fillRect: () => {},
     strokeRect: () => {}
   };
 

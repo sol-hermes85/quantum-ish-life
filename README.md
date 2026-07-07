@@ -17,7 +17,7 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 - **Random**: seed a random grid
 - **Invert**: flip the current probability grid so empty areas become alive and live areas become empty
 - **Clear**: reset the grid
-- **One finger drag**: paint or erase cells; desktop mouse users get a cell preview before painting
+- **One finger drag**: paint or erase cells; desktop mouse users get a filled cell preview before painting
 - **Two finger pinch / drag**: zoom and pan around the grid
 - **Shift-drag / right-drag**: pan the grid with a mouse or trackpad without painting
 - **Scroll wheel / + − buttons**: zoom in or out on the grid
@@ -37,7 +37,7 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 - **Stats panel**: key changing values announce politely for assistive technology without interrupting play
 - **Hide / Show controls**: collapse the tuning panel so the grid stays visible while the simulation runs
 - **Underpopulation / survival / overpopulation / birth / noise**: tune the probability rules
-- **Keyboard shortcuts**: Space play/pause, `S` step, `R` random, `C` clear, `I` invert, `D` disco mode, `E` paint/erase, `H` hide/show controls, `Z` reset view, `+` / `-` zoom. Held shortcuts are ignored after the first keydown so one long press does not flood steps or resets
+- **Keyboard shortcuts**: Space or `P` play/pause, `S` step, `R` random, `C` clear, `I` invert, `D` disco mode, `E` paint/erase, `H` hide/show controls, `Z` reset view, `+` / `-` zoom. Held shortcuts are ignored after the first keydown so one long press does not flood steps or resets
 
 ## Local development
 

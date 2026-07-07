@@ -121,6 +121,7 @@ function visibleGridLineRange(start, cellSize, totalCells, viewportSize) {
 function keyboardShortcutAction(key) {
   const shortcuts = {
     ' ': 'play',
+    p: 'play',
     '+': 'zoom-in',
     '=': 'zoom-in',
     '-': 'zoom-out',
@@ -314,6 +315,7 @@ function gridPixelColour(probability, cellIndex, generation, discoMode, selected
   if (probability <= 0) return { r: 255, g: 255, b: 255 };
 
   const liveColour = discoMode ? rainbowCellColour(cellIndex, generation) : selectedLiveColour;
+  if (probability >= 1) return liveColour;
   return blendLiveCellColour(probability, liveColour, discoMode);
 }
 
@@ -642,8 +644,10 @@ if (typeof document !== 'undefined') (() => {
 
     const x = panX + hoverCell.x * cellX;
     const y = panY + hoverCell.y * cellY;
+    ctx.fillStyle = tool === 'erase' ? 'rgba(20,20,20,0.10)' : 'rgba(255,255,255,0.28)';
     ctx.strokeStyle = tool === 'erase' ? 'rgba(20,20,20,0.72)' : 'rgba(255,255,255,0.92)';
     ctx.lineWidth = Math.max(1, Math.min(3, Math.round(Math.min(cellX, cellY) * 0.12)));
+    ctx.fillRect(x + 1, y + 1, Math.max(1, cellX - 2), Math.max(1, cellY - 2));
     ctx.strokeRect(x + 1, y + 1, Math.max(1, cellX - 2), Math.max(1, cellY - 2));
   }
 
