@@ -77,8 +77,8 @@ canvas {
 
 .ui {
   position: fixed;
-  top: 12px;
-  right: 12px;
+  top: max(12px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
   z-index: 1;
   width: min(360px, calc(100vw - 24px));
   display: grid;
@@ -252,9 +252,9 @@ select {
 
   .ui {
     top: auto;
-    right: 8px;
-    bottom: 8px;
-    left: 8px;
+    right: max(8px, env(safe-area-inset-right));
+    bottom: max(8px, env(safe-area-inset-bottom));
+    left: max(8px, env(safe-area-inset-left));
     width: auto;
   }
 

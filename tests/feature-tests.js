@@ -383,6 +383,20 @@ test('two finger drag pans the zoomed grid view', () => {
   });
 });
 
+test('desktop pointer users can pan without painting', () => {
+  assert.match(html, /Shift-drag or right-drag pans the grid/);
+  assert.match(js, /function shouldPanPointer/);
+  assert.match(js, /event\.button === 2 \|\| event\.shiftKey/);
+  assert.match(js, /function panFromPointer/);
+  assert.match(js, /canvas\.addEventListener\('contextmenu'/);
+});
+
+test('drag painting skips duplicate cell writes', () => {
+  assert.match(js, /let lastPaintIndex = -1;/);
+  assert.match(js, /if \(i === lastPaintIndex\) return;/);
+  assert.match(js, /lastPaintIndex = i;/);
+});
+
 test('mobile zoom controls exist beside the grid', () => {
   const css = fs.readFileSync('styles.css', 'utf8');
   assert.match(html, /id="zoomIn"/);
@@ -415,6 +429,14 @@ test('keyboard users get visible focus outlines on controls', () => {
   assert.match(css, /input:focus-visible/);
   assert.match(css, /select:focus-visible/);
   assert.match(css, /outline:\s*3px solid #7dd3fc/);
+});
+
+test('mobile control overlays respect safe area insets', () => {
+  const css = fs.readFileSync('styles.css', 'utf8');
+  assert.match(css, /env\(safe-area-inset-top\)/);
+  assert.match(css, /env\(safe-area-inset-bottom\)/);
+  assert.match(css, /env\(safe-area-inset-left\)/);
+  assert.match(css, /env\(safe-area-inset-right\)/);
 });
 
 test('manual grid actions clear stale preset labels', () => {

@@ -19,6 +19,7 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 - **Clear**: reset the grid
 - **One finger drag**: paint or erase cells
 - **Two finger pinch / drag**: zoom and pan around the grid
+- **Shift-drag / right-drag**: pan the grid with a mouse or trackpad without painting
 - **Scroll wheel / + − buttons**: zoom in or out on the grid
 - **Reset view**: return zoom and pan to the default view; the current zoom level is shown in the stats panel
 - **Grid size**: change the simulation resolution

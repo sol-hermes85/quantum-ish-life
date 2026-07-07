@@ -88,6 +88,10 @@ function screenToGridPoint(screenX, screenY, size, canvasWidth, canvasHeight, zo
   };
 }
 
+function shouldPanPointer(event) {
+  return event.button === 2 || event.shiftKey;
+}
+
 function shouldDrawGuideGrid(cellWidth, cellHeight) {
   return Math.min(cellWidth, cellHeight) >= 6;
 }
@@ -380,6 +384,9 @@ if (typeof document !== 'undefined') (() => {
   let running = false;
   let lastTick = 0;
   let isDrawing = false;
+  let isPanning = false;
+  let lastPaintIndex = -1;
+  let lastPanPoint = { x: 0, y: 0 };
   let tool = 'paint';
   let drawQueued = false;
   let zoom = 1;
@@ -640,8 +647,21 @@ if (typeof document !== 'undefined') (() => {
     if (p.x < 0 || p.x >= size || p.y < 0 || p.y >= size) return;
 
     const i = idx(p.x, p.y);
+    if (i === lastPaintIndex) return;
+
     grid[i] = tool === 'erase' ? 0 : 1;
     ages[i] = tool === 'erase' ? 0 : 1;
+    lastPaintIndex = i;
+    requestDraw();
+  }
+
+  function panFromPointer(e) {
+    const current = toCanvasPoint(e);
+    const camera = dragView(zoom, panX, panY, current.x - lastPanPoint.x, current.y - lastPanPoint.y, canvas.width, canvas.height);
+    zoom = camera.zoom;
+    panX = camera.panX;
+    panY = camera.panY;
+    lastPanPoint = current;
     requestDraw();
   }
 
@@ -840,6 +860,7 @@ if (typeof document !== 'undefined') (() => {
 
     if (activePointers.size >= 2) {
       isDrawing = false;
+      isPanning = false;
       pinchStartDistance = pointerDistance();
       pinchStartZoom = zoom;
       pinchStartPanX = panX;
@@ -848,7 +869,15 @@ if (typeof document !== 'undefined') (() => {
       return;
     }
 
+    if (shouldPanPointer(e)) {
+      isDrawing = false;
+      isPanning = true;
+      lastPanPoint = toCanvasPoint(e);
+      return;
+    }
+
     isDrawing = true;
+    lastPaintIndex = -1;
     paint(e);
   }, { passive: false });
 
@@ -868,6 +897,12 @@ if (typeof document !== 'undefined') (() => {
       return;
     }
 
+    if (isPanning) {
+      e.preventDefault();
+      panFromPointer(e);
+      return;
+    }
+
     if (!isDrawing) return;
     e.preventDefault();
     paint(e);
@@ -877,14 +912,20 @@ if (typeof document !== 'undefined') (() => {
     e.preventDefault();
     activePointers.delete(e.pointerId);
     isDrawing = false;
+    isPanning = false;
+    lastPaintIndex = -1;
     releasePointer(e.pointerId);
   }, { passive: false });
 
   canvas.addEventListener('pointercancel', e => {
     activePointers.delete(e.pointerId);
     isDrawing = false;
+    isPanning = false;
+    lastPaintIndex = -1;
     releasePointer(e.pointerId);
   });
+
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
 
   canvas.addEventListener('wheel', e => {
     e.preventDefault();
