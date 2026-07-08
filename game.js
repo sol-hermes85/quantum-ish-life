@@ -195,6 +195,18 @@ function pageTitleForState(running, generation) {
   return `${status} · Gen ${generation} · Quantum-ish Life`;
 }
 
+function nextTickTimestampOnResume(previousRunning, nextRunning, now, previousTick) {
+  return !previousRunning && nextRunning ? now : previousTick;
+}
+
+function shouldAutoCollapseControlsOnPlay(running, viewportWidth, controlsCollapsed) {
+  return running && viewportWidth <= 640 && !controlsCollapsed;
+}
+
+function shouldPauseWhenHidden(running, visibilityState) {
+  return running && visibilityState === 'hidden';
+}
+
 function shouldResetViewTap(previousTime, previousPoint, currentTime, currentPoint) {
   if (!previousTime || !previousPoint) return false;
   if (currentTime - previousTime > 320) return false;
@@ -844,13 +856,27 @@ if (typeof document !== 'undefined') (() => {
   }
 
   function togglePlay() {
+    const previousRunning = running;
     running = !running;
+    lastTick = nextTickTimestampOnResume(previousRunning, running, performance.now(), lastTick);
     controls.play.textContent = running ? 'Pause' : 'Play';
     controls.play.classList.toggle('primary', !running);
     controls.play.setAttribute('aria-pressed', String(running));
     labels.runStatus.textContent = running ? 'Running' : 'Paused';
     document.title = pageTitleForState(running, generation);
+    if (shouldAutoCollapseControlsOnPlay(running, window.innerWidth, controlsCollapsed)) setControlsCollapsed(true);
     showFeedback(running ? 'Running' : 'Paused');
+  }
+
+  function pauseForHiddenTab() {
+    if (!shouldPauseWhenHidden(running, document.visibilityState)) return;
+
+    running = false;
+    controls.play.textContent = 'Play';
+    controls.play.classList.add('primary');
+    controls.play.setAttribute('aria-pressed', 'false');
+    labels.runStatus.textContent = 'Paused';
+    document.title = pageTitleForState(running, generation);
   }
 
   function clearGrid() {
@@ -1154,6 +1180,7 @@ if (typeof document !== 'undefined') (() => {
   }, { passive: false });
 
   window.addEventListener('resize', resizeCanvasToWindow);
+  document.addEventListener('visibilitychange', pauseForHiddenTab);
   window.addEventListener('keydown', e => {
     if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target?.tagName)) return;
     if (e.repeat) return;

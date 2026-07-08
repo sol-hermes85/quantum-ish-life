@@ -39,6 +39,8 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 - **Stats panel**: key changing values announce politely for assistive technology without interrupting play
 - **Browser tab title**: shows whether the simulation is running and the current generation
 - **Hide / Show controls**: collapse the tuning panel so the grid stays visible while the simulation runs
+- **Mobile play view**: starting the simulation on a small screen folds the tuning controls away so the grid stays open
+- **Hidden tabs**: the simulation pauses when the browser tab is hidden to avoid wasting battery in the background
 - **Primary controls**: sit on a subtle glass tray so they remain readable over busy patterns
 - **Underpopulation / survival / overpopulation / birth / noise**: tune the probability rules
 - **Keyboard shortcuts**: Space or `P` play/pause, `S` step, `R` random, `C` clear, `I` invert, `D` disco mode, `E` paint/erase, `H` hide/show controls, `Z` reset view, `+` / `-` zoom. Held shortcuts are ignored after the first keydown so one long press does not flood steps or resets
@@ -63,4 +65,4 @@ http://localhost:8000
 
 This is intentionally lightweight and dependency-free. No framework, no build chain, no npm ceremony.
 
-The interface also respects reduced-motion preferences, keeping the grid interaction crisp without unnecessary animation.
+The interface also respects reduced-motion preferences, keeping the grid interaction crisp without unnecessary animation, and resets the simulation clock on resume so play starts smoothly after a pause.

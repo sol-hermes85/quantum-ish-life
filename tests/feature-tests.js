@@ -4,6 +4,7 @@ const vm = require('vm');
 
 const html = fs.readFileSync('index.html', 'utf8');
 const js = fs.readFileSync('game.js', 'utf8');
+const README = fs.readFileSync('README.md', 'utf8');
 
 function test(name, fn) {
   try {
@@ -377,6 +378,47 @@ test('browser tab title reflects whether the simulation is running', () => {
   assert.strictEqual(sandbox.window.__testPageTitle(false, 0), 'Paused · Gen 0 · Quantum-ish Life');
   assert.strictEqual(sandbox.window.__testPageTitle(true, 12), 'Running · Gen 12 · Quantum-ish Life');
   assert.match(js, /document\.title = pageTitleForState\(running, generation\);/);
+});
+
+test('resuming play resets the simulation clock for a smooth first tick', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testNextTick = nextTickTimestampOnResume;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testNextTick(false, true, 1234, 50), 1234);
+  assert.strictEqual(sandbox.window.__testNextTick(true, false, 1234, 50), 50);
+  assert.strictEqual(sandbox.window.__testNextTick(true, true, 1234, 50), 50);
+  assert.match(js, /lastTick = nextTickTimestampOnResume\(previousRunning, running, performance\.now\(\), lastTick\);/);
+  assert.match(README, /resets the simulation clock on resume/);
+});
+
+test('playing on small screens folds tuning controls away', () => {
+  assert.match(html, /On small screens, Play folds the tuning controls away/);
+  assert.match(README, /Mobile play view/);
+
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testAutoCollapse = shouldAutoCollapseControlsOnPlay;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testAutoCollapse(true, 640, false), true);
+  assert.strictEqual(sandbox.window.__testAutoCollapse(true, 641, false), false);
+  assert.strictEqual(sandbox.window.__testAutoCollapse(true, 640, true), false);
+  assert.strictEqual(sandbox.window.__testAutoCollapse(false, 640, false), false);
+  assert.match(js, /if \(shouldAutoCollapseControlsOnPlay\(running, window\.innerWidth, controlsCollapsed\)\) setControlsCollapsed\(true\);/);
+});
+
+test('hidden tabs pause the simulation to avoid background battery drain', () => {
+  assert.match(html, /Hidden tabs pause automatically to save battery/);
+  assert.match(README, /Hidden tabs/);
+
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testHiddenPause = shouldPauseWhenHidden;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testHiddenPause(true, 'hidden'), true);
+  assert.strictEqual(sandbox.window.__testHiddenPause(true, 'visible'), false);
+  assert.strictEqual(sandbox.window.__testHiddenPause(false, 'hidden'), false);
+  assert.match(js, /document\.addEventListener\('visibilitychange', pauseForHiddenTab\);/);
 });
 
 test('motion polish respects reduced motion preferences', () => {
@@ -812,7 +854,8 @@ test('game initialises against a browser-sized canvas without runtime errors', (
         if (!elements.has(id)) elements.set(id, makeElement(id));
         return elements.get(id);
       },
-      createElement: () => makeElement('canvas')
+      createElement: () => makeElement('canvas'),
+      addEventListener: () => {}
     },
     requestAnimationFrame: fn => rafQueue.push(fn)
   };
