@@ -321,6 +321,31 @@ test('live percentage helper formats the current filled area', () => {
   assert.strictEqual(sandbox.window.__testPopulationPercent(5, 0), '0.0%');
 });
 
+test('drag paint strokes report how many cells changed', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testPaintFeedback = paintStrokeFeedback;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testPaintFeedback('paint', 1), 'Painted 1 cell');
+  assert.strictEqual(sandbox.window.__testPaintFeedback('paint', 3), 'Painted 3 cells');
+  assert.strictEqual(sandbox.window.__testPaintFeedback('erase', 2), 'Erased 2 cells');
+  assert.strictEqual(sandbox.window.__testPaintFeedback('erase', 0), '');
+  assert.match(js, /strokeChangedCount\+\+/);
+  assert.match(html, /paint\/erase stroke counts/);
+});
+
+test('stat labels avoid duplicate DOM writes', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testSetText = setTextIfChanged;`, sandbox);
+
+  const element = { textContent: 'same' };
+  assert.strictEqual(sandbox.window.__testSetText(element, 'same'), false);
+  assert.strictEqual(sandbox.window.__testSetText(element, 'new'), true);
+  assert.strictEqual(element.textContent, 'new');
+  assert.match(js, /setTextIfChanged\(labels\.zoomLevel, zoomPercentLabel\(zoom\)\);/);
+});
+
 test('average stat label explains that it is a probability average', () => {
   assert.match(html, /Avg probability:/);
 });
@@ -366,7 +391,7 @@ test('zoom feedback uses the same rounded percent label as the stats panel', () 
 
   assert.strictEqual(sandbox.window.__testZoomPercent(1), '100%');
   assert.strictEqual(sandbox.window.__testZoomPercent(1.234), '123%');
-  assert.match(js, /labels\.zoomLevel\.textContent = zoomPercentLabel\(zoom\);/);
+  assert.match(js, /setTextIfChanged\(labels\.zoomLevel, zoomPercentLabel\(zoom\)\);/);
   assert.match(js, /showFeedback\(`Zoom \$\{zoomPercentLabel\(zoom\)\}`\);/);
   assert.match(html, /main mode, zoom, or grid content changes/);
 });
@@ -427,6 +452,13 @@ test('motion polish respects reduced motion preferences', () => {
   assert.match(css, /prefers-reduced-motion:\s*reduce/);
   assert.match(css, /transition-duration:\s*0\.01ms !important/);
   assert.match(css, /animation-duration:\s*0\.01ms !important/);
+});
+
+test('running state adds a subtle grid colour wash', () => {
+  const css = fs.readFileSync('styles.css', 'utf8');
+  assert.match(css, /\.canvasShell\.running::after/);
+  assert.match(js, /controls\.shell\.classList\.toggle\('running', running\);/);
+  assert.match(README, /Running state/);
 });
 
 test('double-click or double-tap on the grid can reset the view', () => {

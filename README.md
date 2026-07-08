@@ -17,7 +17,7 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 - **Random**: seed a random grid
 - **Invert**: flip the current probability grid so empty areas become alive and live areas become empty
 - **Clear**: reset the grid
-- **One finger drag**: paint or erase cells; fast drags fill the gaps between cells, desktop mouse users get a crosshair cursor and filled cell preview before painting, erase/pan modes change the cursor, and the active paint/erase button is visually marked
+- **One finger drag**: paint or erase cells; fast drags fill the gaps between cells, stroke feedback reports how many cells changed, desktop mouse users get a crosshair cursor and filled cell preview before painting, erase/pan modes change the cursor, and the active paint/erase button is visually marked
 - **Alt-drag**: temporarily flip paint and erase for quick corrections without changing the selected tool
 - **Two finger pinch / drag**: zoom and pan around the grid
 - **Double-click / double-tap / `0` key**: reset the view quickly from the grid or keyboard
@@ -32,7 +32,8 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 - **Colour hue / saturation**: tune the colour used for live cells
 - **Disco mode**: cycle cells through the seven rainbow colours, changing each generation
 - **Speed**: generations per second
-- **Tool**: shows whether drag will paint or erase cells; play, pause, random, clear, invert, pattern load, reset-view, and zoom changes also show a brief feedback pill over the grid
+- **Tool**: shows whether drag will paint or erase cells; play, pause, random, clear, invert, pattern load, reset-view, painting, erasing, and zoom changes also show a brief feedback pill over the grid
+- **Running state**: adds a subtle colour wash over the grid so play feels alive without adding visual clutter
 - **Avg probability**: shows the average live probability across the grid
 - **Live count**: shows how many cells currently have at least 50% live probability
 - **Fill**: shows that live count as a percentage of the current grid
@@ -65,4 +66,4 @@ http://localhost:8000
 
 This is intentionally lightweight and dependency-free. No framework, no build chain, no npm ceremony.
 
-The interface also respects reduced-motion preferences, keeps the floating zoom controls inside safe-area insets, caps very high display pixel ratios to avoid excessive canvas work, and resets the simulation clock on resume so play starts smoothly after a pause.
+The interface also respects reduced-motion preferences, keeps the floating zoom controls inside safe-area insets, caps very high display pixel ratios to avoid excessive canvas work, skips unchanged stat-label writes, avoids redundant clamped pinch redraws, and resets the simulation clock on resume so play starts smoothly after a pause.

@@ -51,6 +51,13 @@ p {
   background:
     radial-gradient(circle at center, transparent 58%, rgba(16, 16, 16, 0.18) 100%),
     linear-gradient(135deg, rgba(125, 211, 252, 0.08), transparent 34%, rgba(216, 180, 254, 0.08));
+  transition: background 260ms ease, opacity 260ms ease;
+}
+
+.canvasShell.running::after {
+  background:
+    radial-gradient(circle at center, transparent 56%, rgba(16, 16, 16, 0.14) 100%),
+    linear-gradient(135deg, rgba(125, 211, 252, 0.11), transparent 32%, rgba(216, 180, 254, 0.13));
 }
 
 canvas {

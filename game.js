@@ -404,6 +404,19 @@ function populationPercent(liveCount, totalCells) {
   return `${((liveCount / totalCells) * 100).toFixed(1)}%`;
 }
 
+function paintStrokeFeedback(tool, changedCount) {
+  if (changedCount <= 0) return '';
+  const verb = tool === 'erase' ? 'Erased' : 'Painted';
+  const noun = changedCount === 1 ? 'cell' : 'cells';
+  return `${verb} ${changedCount} ${noun}`;
+}
+
+function setTextIfChanged(element, value) {
+  if (element.textContent === value) return false;
+  element.textContent = value;
+  return true;
+}
+
 function collapseProbability(probability) {
   if (probability <= 0) return 0;
   if (probability >= 1) return 1;
@@ -483,6 +496,8 @@ if (typeof document !== 'undefined') (() => {
   let isPanning = false;
   let lastPaintIndex = -1;
   let lastPaintPoint = null;
+  let strokeChangedCount = 0;
+  let strokeFeedbackTool = 'paint';
   let lastPanPoint = { x: 0, y: 0 };
   let tool = 'paint';
   let drawQueued = false;
@@ -687,12 +702,12 @@ if (typeof document !== 'undefined') (() => {
     drawGuideGrid();
     drawHoverPreview();
 
-    labels.generation.textContent = generation;
-    labels.average.textContent = (total / grid.length).toFixed(3);
-    labels.liveCount.textContent = liveCount;
-    labels.livePercent.textContent = populationPercent(liveCount, grid.length);
-    labels.zoomLevel.textContent = zoomPercentLabel(zoom);
-    labels.runStatus.textContent = running ? 'Running' : 'Paused';
+    setTextIfChanged(labels.generation, String(generation));
+    setTextIfChanged(labels.average, (total / grid.length).toFixed(3));
+    setTextIfChanged(labels.liveCount, String(liveCount));
+    setTextIfChanged(labels.livePercent, populationPercent(liveCount, grid.length));
+    setTextIfChanged(labels.zoomLevel, zoomPercentLabel(zoom));
+    setTextIfChanged(labels.runStatus, running ? 'Running' : 'Paused');
     document.title = pageTitleForState(running, generation);
     if (labelsDirty) updateLabels();
   }
@@ -790,6 +805,7 @@ if (typeof document !== 'undefined') (() => {
     grid[i] = paintTool === 'erase' ? 0 : 1;
     ages[i] = paintTool === 'erase' ? 0 : 1;
     lastPaintIndex = i;
+    strokeChangedCount++;
     return true;
   }
 
@@ -822,6 +838,7 @@ if (typeof document !== 'undefined') (() => {
   function updateShellMode() {
     controls.shell.classList.toggle('eraseModeActive', tool === 'erase');
     controls.shell.classList.toggle('panningActive', isPanning || activePointers.size >= 2);
+    controls.shell.classList.toggle('running', running);
   }
 
   function setTool(t) {
@@ -869,6 +886,7 @@ if (typeof document !== 'undefined') (() => {
     controls.play.setAttribute('aria-pressed', String(running));
     labels.runStatus.textContent = running ? 'Running' : 'Paused';
     document.title = pageTitleForState(running, generation);
+    updateShellMode();
     if (shouldAutoCollapseControlsOnPlay(running, window.innerWidth, controlsCollapsed)) setControlsCollapsed(true);
     showFeedback(running ? 'Running' : 'Paused');
   }
@@ -882,6 +900,7 @@ if (typeof document !== 'undefined') (() => {
     controls.play.setAttribute('aria-pressed', 'false');
     labels.runStatus.textContent = 'Paused';
     document.title = pageTitleForState(running, generation);
+    updateShellMode();
   }
 
   function clearGrid() {
@@ -1088,6 +1107,8 @@ if (typeof document !== 'undefined') (() => {
     tapCandidate = { pointerId: e.pointerId, time: tapTime, point: tapPoint };
 
     isDrawing = true;
+    strokeChangedCount = 0;
+    strokeFeedbackTool = effectivePaintTool(tool, e.altKey);
     hoverCell = null;
     updateShellMode();
     lastPaintIndex = -1;
@@ -1104,9 +1125,11 @@ if (typeof document !== 'undefined') (() => {
       const nextZoom = nextPinchZoomLevel(pinchStartZoom, pinchStartDistance, pointerDistance());
       const zoomed = zoomViewAtPoint(pinchStartZoom, nextZoom, pinchStartPanX, pinchStartPanY, pinchStartMidpoint.x, pinchStartMidpoint.y, canvas.width, canvas.height);
       const dragged = dragView(zoomed.zoom, zoomed.panX, zoomed.panY, currentMidpoint.x - pinchStartMidpoint.x, currentMidpoint.y - pinchStartMidpoint.y, canvas.width, canvas.height);
+      const previous = { zoom, panX, panY };
       zoom = dragged.zoom;
       panX = dragged.panX;
       panY = dragged.panY;
+      if (!cameraChanged(previous, dragged)) return;
       requestDraw();
       return;
     }
@@ -1142,6 +1165,7 @@ if (typeof document !== 'undefined') (() => {
   canvas.addEventListener('pointerup', e => {
     e.preventDefault();
     activePointers.delete(e.pointerId);
+    const wasDrawing = isDrawing;
     isDrawing = false;
     isPanning = false;
     lastPaintIndex = -1;
@@ -1151,6 +1175,11 @@ if (typeof document !== 'undefined') (() => {
       lastTapPoint = tapCandidate.point;
       tapCandidate = null;
     }
+    if (wasDrawing) {
+      const message = paintStrokeFeedback(strokeFeedbackTool, strokeChangedCount);
+      if (message) showFeedback(message);
+    }
+    strokeChangedCount = 0;
     updateShellMode();
     releasePointer(e.pointerId);
   }, { passive: false });
@@ -1162,6 +1191,7 @@ if (typeof document !== 'undefined') (() => {
     lastPaintIndex = -1;
     lastPaintPoint = null;
     if (tapCandidate?.pointerId === e.pointerId) tapCandidate = null;
+    strokeChangedCount = 0;
     updateShellMode();
     releasePointer(e.pointerId);
   });
