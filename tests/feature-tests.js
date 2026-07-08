@@ -234,6 +234,7 @@ test('keyboard shortcuts expose common actions', () => {
   assert.match(html, /I invert/);
   assert.match(html, /D disco/);
   assert.match(html, /E paint\/erase/);
+  assert.match(html, /1 paint, 2 erase/);
   assert.match(html, /H hide\/show controls/);
   assert.match(html, /Z\/0 reset view/);
   assert.match(html, /\+\/− zoom/);
@@ -243,6 +244,8 @@ test('keyboard shortcuts expose common actions', () => {
   vm.runInContext(`${js}\nwindow.__testShortcut = keyboardShortcutAction;`, sandbox);
 
   assert.strictEqual(sandbox.window.__testShortcut(' '), 'play');
+  assert.strictEqual(sandbox.window.__testShortcut('1'), 'paint-tool');
+  assert.strictEqual(sandbox.window.__testShortcut('2'), 'erase-tool');
   assert.strictEqual(sandbox.window.__testShortcut('p'), 'play');
   assert.strictEqual(sandbox.window.__testShortcut('S'), 'step');
   assert.strictEqual(sandbox.window.__testShortcut('r'), 'randomise');
@@ -344,6 +347,18 @@ test('stat labels avoid duplicate DOM writes', () => {
   assert.strictEqual(sandbox.window.__testSetText(element, 'new'), true);
   assert.strictEqual(element.textContent, 'new');
   assert.match(js, /setTextIfChanged\(labels\.zoomLevel, zoomPercentLabel\(zoom\)\);/);
+});
+
+test('control labels avoid duplicate DOM writes', () => {
+  assert.match(js, /setTextIfChanged\(labels\.gridSize, `\$\{size\} × \$\{size\}`\);/);
+  assert.match(js, /setTextIfChanged\(labels\.patternPreset, patternPresetLabel\(controls\.patternPreset\.value, size\)\);/);
+  assert.match(js, /setTextIfChanged\(labels\[key\], Number\(controls\[key\]\.value\)\.toFixed\(2\)\);/);
+  assert.match(README, /stat\/control-label/);
+});
+
+test('mobile controls wrap to four columns for larger tap targets', () => {
+  const css = fs.readFileSync('styles.css', 'utf8');
+  assert.match(css, /@media \(max-width: 640px\)[\s\S]*\.buttons \{[\s\S]*grid-template-columns: repeat\(4, 1fr\);/);
 });
 
 test('average stat label explains that it is a probability average', () => {

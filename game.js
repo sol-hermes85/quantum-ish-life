@@ -182,6 +182,8 @@ function visibleGridLineRange(start, cellSize, totalCells, viewportSize) {
 function keyboardShortcutAction(key) {
   const shortcuts = {
     ' ': 'play',
+    1: 'paint-tool',
+    2: 'erase-tool',
     p: 'play',
     '+': 'zoom-in',
     '=': 'zoom-in',
@@ -778,18 +780,18 @@ if (typeof document !== 'undefined') (() => {
   }
 
   function updateLabels() {
-    labels.gridSize.textContent = `${size} × ${size}`;
-    labels.ageLimit.textContent = controls.ageLimit.value === '0' ? 'never' : `${controls.ageLimit.value} gen`;
-    labels.density.textContent = `${Math.round(Number(controls.density.value) * 100)}%`;
-    labels.patternPreset.textContent = patternPresetLabel(controls.patternPreset.value, size);
-    labels.rulePreset.textContent = displayRulePresetName(controls.rulePreset.value);
-    labels.hue.textContent = `${controls.hue.value}°`;
-    labels.saturation.textContent = `${controls.saturation.value}%`;
-    labels.discoMode.textContent = controls.discoMode.checked ? 'on' : 'off';
-    labels.speed.textContent = `${controls.speed.value} gen/s`;
+    setTextIfChanged(labels.gridSize, `${size} × ${size}`);
+    setTextIfChanged(labels.ageLimit, controls.ageLimit.value === '0' ? 'never' : `${controls.ageLimit.value} gen`);
+    setTextIfChanged(labels.density, `${Math.round(Number(controls.density.value) * 100)}%`);
+    setTextIfChanged(labels.patternPreset, patternPresetLabel(controls.patternPreset.value, size));
+    setTextIfChanged(labels.rulePreset, displayRulePresetName(controls.rulePreset.value));
+    setTextIfChanged(labels.hue, `${controls.hue.value}°`);
+    setTextIfChanged(labels.saturation, `${controls.saturation.value}%`);
+    setTextIfChanged(labels.discoMode, controls.discoMode.checked ? 'on' : 'off');
+    setTextIfChanged(labels.speed, `${controls.speed.value} gen/s`);
 
     for (const key of ['under', 'survive', 'over', 'birth', 'noise']) {
-      labels[key].textContent = Number(controls[key].value).toFixed(2);
+      setTextIfChanged(labels[key], Number(controls[key].value).toFixed(2));
     }
 
     labelsDirty = false;
@@ -1250,6 +1252,8 @@ if (typeof document !== 'undefined') (() => {
     else if (action === 'invert') invertGrid();
     else if (action === 'toggle-disco') toggleDiscoMode();
     else if (action === 'toggle-tool') setTool(tool === 'paint' ? 'erase' : 'paint');
+    else if (action === 'paint-tool') setTool('paint');
+    else if (action === 'erase-tool') setTool('erase');
     else if (action === 'toggle-controls') setControlsCollapsed(!controlsCollapsed);
     else if (action === 'reset-view') resetView();
     else if (action === 'zoom-in') applyZoomDelta(0.2);
