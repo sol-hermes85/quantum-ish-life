@@ -487,6 +487,34 @@ test('no-op zoom input is ignored at zoom limits', () => {
   assert.match(js, /if \(!shouldApplyZoom\(zoom, nextZoom\)\) return;/);
 });
 
+test('zoom buttons dim when the camera reaches its limits', () => {
+  const css = fs.readFileSync('styles.css', 'utf8');
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testDisableZoom = shouldDisableZoomControl; window.__testSetDisabled = setDisabledIfChanged;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testDisableZoom(0.25, -1), true);
+  assert.strictEqual(sandbox.window.__testDisableZoom(0.26, -1), false);
+  assert.strictEqual(sandbox.window.__testDisableZoom(4, 1), true);
+  assert.strictEqual(sandbox.window.__testDisableZoom(3.99, 1), false);
+
+  const button = { disabled: false };
+  assert.strictEqual(sandbox.window.__testSetDisabled(button, false), false);
+  assert.strictEqual(sandbox.window.__testSetDisabled(button, true), true);
+  assert.strictEqual(button.disabled, true);
+
+  assert.match(js, /function updateZoomControlState/);
+  assert.match(js, /setDisabledIfChanged\(controls\.zoomOut, shouldDisableZoomControl\(zoom, -1\)\);/);
+  assert.match(css, /button:disabled/);
+  assert.match(README, /zoom buttons dim when the view is already at its limit/);
+});
+
+test('reset view skips feedback and redraw work when already reset', () => {
+  assert.match(js, /const previous = \{ zoom, panX, panY \};/);
+  assert.match(js, /if \(!cameraChanged\(previous, camera\)\) return;/);
+  assert.match(README, /avoids redundant reset-view/);
+});
+
 test('camera zoom keeps the touched grid point under the fingers', () => {
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);

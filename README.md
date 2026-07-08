@@ -22,7 +22,7 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 - **Two finger pinch / drag**: zoom and pan around the grid
 - **Double-click / double-tap / `0` key**: reset the view quickly from the grid or keyboard
 - **Shift-drag / middle-drag / right-drag**: pan the grid with a mouse or trackpad without painting
-- **Scroll wheel / + − buttons**: zoom in or out on the grid
+- **Scroll wheel / + − buttons**: zoom in or out on the grid; zoom buttons dim when the view is already at its limit
 - **Reset view**: return zoom and pan to the default view; the current zoom level is shown in the stats panel
 - **Grid size**: change the simulation resolution
 - **Preset pattern**: seed a glider, blinker, traffic light, lightweight spaceship, R-pentomino, small exploder, acorn, diehard, loaf, block, toad, cross, diamond, boat, tub, pulsar, beacon, clock, pentadecathlon, Gosper glider gun, or random soup; choosing a preset replaces the current grid, selected patterns show their live cell count, and stay selected when the grid size changes
@@ -66,4 +66,4 @@ http://localhost:8000
 
 This is intentionally lightweight and dependency-free. No framework, no build chain, no npm ceremony.
 
-The interface also respects reduced-motion preferences, keeps the floating zoom controls inside safe-area insets, caps very high display pixel ratios to avoid excessive canvas work, skips unchanged stat-label writes, avoids redundant clamped pinch redraws, and resets the simulation clock on resume so play starts smoothly after a pause.
+The interface also respects reduced-motion preferences, keeps the floating zoom controls inside safe-area insets, caps very high display pixel ratios to avoid excessive canvas work, skips unchanged stat-label and disabled-button writes, avoids redundant reset-view and clamped pinch redraws, and resets the simulation clock on resume so play starts smoothly after a pause.

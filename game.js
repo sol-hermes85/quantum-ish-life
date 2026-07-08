@@ -85,6 +85,16 @@ function shouldApplyZoom(currentZoom, nextZoom) {
   return currentZoom !== nextZoom;
 }
 
+function shouldDisableZoomControl(zoom, direction) {
+  return direction < 0 ? zoom <= 0.25 : zoom >= 4;
+}
+
+function setDisabledIfChanged(element, disabled) {
+  if (element.disabled === disabled) return false;
+  element.disabled = disabled;
+  return true;
+}
+
 function screenToGridPoint(screenX, screenY, size, canvasWidth, canvasHeight, zoom, panX, panY) {
   return {
     x: Math.floor(((screenX - panX) / (canvasWidth * zoom)) * size),
@@ -708,8 +718,14 @@ if (typeof document !== 'undefined') (() => {
     setTextIfChanged(labels.livePercent, populationPercent(liveCount, grid.length));
     setTextIfChanged(labels.zoomLevel, zoomPercentLabel(zoom));
     setTextIfChanged(labels.runStatus, running ? 'Running' : 'Paused');
+    updateZoomControlState();
     document.title = pageTitleForState(running, generation);
     if (labelsDirty) updateLabels();
+  }
+
+  function updateZoomControlState() {
+    setDisabledIfChanged(controls.zoomOut, shouldDisableZoomControl(zoom, -1));
+    setDisabledIfChanged(controls.zoomIn, shouldDisableZoomControl(zoom, 1));
   }
 
   function drawGuideGrid() {
@@ -870,6 +886,9 @@ if (typeof document !== 'undefined') (() => {
 
   function resetView() {
     const camera = clampView(1, 0, 0, canvas.width, canvas.height);
+    const previous = { zoom, panX, panY };
+    if (!cameraChanged(previous, camera)) return;
+
     zoom = camera.zoom;
     panX = camera.panX;
     panY = camera.panY;
