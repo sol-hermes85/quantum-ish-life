@@ -366,7 +366,7 @@ test('zoom feedback uses the same rounded percent label as the stats panel', () 
   assert.strictEqual(sandbox.window.__testZoomPercent(1.234), '123%');
   assert.match(js, /labels\.zoomLevel\.textContent = zoomPercentLabel\(zoom\);/);
   assert.match(js, /showFeedback\(`Zoom \$\{zoomPercentLabel\(zoom\)\}`\);/);
-  assert.match(html, /main mode or zoom changes/);
+  assert.match(html, /main mode, zoom, or grid content changes/);
 });
 
 test('browser tab title reflects whether the simulation is running', () => {
@@ -435,6 +435,16 @@ test('two finger drag pans the zoomed grid view', () => {
     panX: -540,
     panY: -430
   });
+});
+
+test('panning skips redraw work when the clamped camera does not move', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testCameraChanged = cameraChanged;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testCameraChanged({ zoom: 1, panX: 0, panY: 0 }, { zoom: 1, panX: 0, panY: 0 }), false);
+  assert.strictEqual(sandbox.window.__testCameraChanged({ zoom: 2, panX: -5, panY: 0 }, { zoom: 2, panX: -6, panY: 0 }), true);
+  assert.match(js, /if \(!cameraChanged\(previous, camera\)\) return;/);
 });
 
 test('desktop pointer users can pan without painting', () => {
@@ -556,6 +566,14 @@ test('mode changes can show brief feedback over the grid', () => {
   assert.match(js, /showFeedback\(t === 'paint' \? 'Paint mode' : 'Erase mode'\)/);
 });
 
+test('grid content actions show clear feedback', () => {
+  assert.match(js, /showFeedback\('Randomised'\)/);
+  assert.match(js, /showFeedback\('Grid cleared'\)/);
+  assert.match(js, /showFeedback\('Grid inverted'\)/);
+  assert.match(js, /showFeedback\(`\$\{displayPresetName\(pattern\)\} loaded`\)/);
+  assert.match(html, /grid content changes/);
+});
+
 test('desktop panning supports shift, middle, and right drag', () => {
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
@@ -583,6 +601,17 @@ test('primary controls sit on a subtle glass tray with a clear canvas cursor', (
   assert.match(css, /canvas\s*{[^}]*cursor:\s*crosshair/s);
   assert.match(css, /\.buttons\s*{[^}]*backdrop-filter:\s*blur\(6px\)/s);
   assert.match(css, /\.buttons\s*{[^}]*border-radius:\s*13px/s);
+});
+
+test('canvas cursor reflects erase and panning modes', () => {
+  const css = fs.readFileSync('styles.css', 'utf8');
+
+  assert.match(html, /id="shell"/);
+  assert.match(html, /cursor changes for erase and pan modes/);
+  assert.match(css, /\.canvasShell\.eraseModeActive canvas\s*{[^}]*cursor:\s*cell/s);
+  assert.match(css, /\.canvasShell\.panningActive canvas\s*{[^}]*cursor:\s*grabbing/s);
+  assert.match(js, /function updateShellMode/);
+  assert.match(js, /controls\.shell\.classList\.toggle\('eraseModeActive', tool === 'erase'\)/);
 });
 
 test('canvas has a subtle vignette so the full-screen grid feels less stark', () => {

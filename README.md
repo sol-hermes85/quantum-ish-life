@@ -17,7 +17,7 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 - **Random**: seed a random grid
 - **Invert**: flip the current probability grid so empty areas become alive and live areas become empty
 - **Clear**: reset the grid
-- **One finger drag**: paint or erase cells; fast drags fill the gaps between cells, desktop mouse users get a crosshair cursor and filled cell preview before painting, and the active paint/erase button is visually marked
+- **One finger drag**: paint or erase cells; fast drags fill the gaps between cells, desktop mouse users get a crosshair cursor and filled cell preview before painting, erase/pan modes change the cursor, and the active paint/erase button is visually marked
 - **Alt-drag**: temporarily flip paint and erase for quick corrections without changing the selected tool
 - **Two finger pinch / drag**: zoom and pan around the grid
 - **Double-click / double-tap**: reset the view quickly from the grid
@@ -32,7 +32,7 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 - **Colour hue / saturation**: tune the colour used for live cells
 - **Disco mode**: cycle cells through the seven rainbow colours, changing each generation
 - **Speed**: generations per second
-- **Tool**: shows whether drag will paint or erase cells; play, pause, tool, reset-view, and zoom changes also show a brief feedback pill over the grid
+- **Tool**: shows whether drag will paint or erase cells; play, pause, random, clear, invert, pattern load, reset-view, and zoom changes also show a brief feedback pill over the grid
 - **Avg probability**: shows the average live probability across the grid
 - **Live count**: shows how many cells currently have at least 50% live probability
 - **Fill**: shows that live count as a percentage of the current grid

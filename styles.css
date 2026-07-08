@@ -61,6 +61,14 @@ canvas {
   cursor: crosshair;
 }
 
+.canvasShell.eraseModeActive canvas {
+  cursor: cell;
+}
+
+.canvasShell.panningActive canvas {
+  cursor: grabbing;
+}
+
 .zoomControls {
   position: fixed;
   left: 12px;

@@ -143,6 +143,10 @@ function shouldClearHoverCell(hoverCell) {
   return hoverCell !== null;
 }
 
+function cameraChanged(previous, next) {
+  return previous.zoom !== next.zoom || previous.panX !== next.panX || previous.panY !== next.panY;
+}
+
 function shouldDrawGuideGrid(cellWidth, cellHeight) {
   return Math.min(cellWidth, cellHeight) >= 6;
 }
@@ -406,6 +410,7 @@ if (typeof document !== 'undefined') (() => {
     zoomOut: $('zoomOut'),
     resetView: $('resetView'),
     feedback: $('feedback'),
+    shell: $('shell'),
     panel: $('controlsPanel'),
     controlsToggle: $('controlsToggle'),
     gridSize: $('gridSize'),
@@ -572,6 +577,7 @@ if (typeof document !== 'undefined') (() => {
     }
 
     generation = 0;
+    if (!keepPreset) showFeedback('Randomised');
     requestDraw();
   }
 
@@ -787,11 +793,18 @@ if (typeof document !== 'undefined') (() => {
   function panFromPointer(e) {
     const current = toCanvasPoint(e);
     const camera = dragView(zoom, panX, panY, current.x - lastPanPoint.x, current.y - lastPanPoint.y, canvas.width, canvas.height);
+    const previous = { zoom, panX, panY };
     zoom = camera.zoom;
     panX = camera.panX;
     panY = camera.panY;
     lastPanPoint = current;
+    if (!cameraChanged(previous, camera)) return;
     requestDraw();
+  }
+
+  function updateShellMode() {
+    controls.shell.classList.toggle('eraseModeActive', tool === 'erase');
+    controls.shell.classList.toggle('panningActive', isPanning || activePointers.size >= 2);
   }
 
   function setTool(t) {
@@ -801,6 +814,7 @@ if (typeof document !== 'undefined') (() => {
     controls.paintMode.setAttribute('aria-pressed', String(t === 'paint'));
     controls.eraseMode.setAttribute('aria-pressed', String(t === 'erase'));
     labels.toolStatus.textContent = t === 'paint' ? 'Paint' : 'Erase';
+    updateShellMode();
     showFeedback(t === 'paint' ? 'Paint mode' : 'Erase mode');
   }
 
@@ -844,6 +858,7 @@ if (typeof document !== 'undefined') (() => {
     grid.fill(0);
     ages.fill(0);
     generation = 0;
+    showFeedback('Grid cleared');
     requestDraw();
   }
 
@@ -851,6 +866,7 @@ if (typeof document !== 'undefined') (() => {
     resetPatternSelection();
     invertProbabilityGrid(grid, ages);
     generation = 0;
+    showFeedback('Grid inverted');
     requestDraw();
   }
 
@@ -863,6 +879,7 @@ if (typeof document !== 'undefined') (() => {
   function applyPattern(pattern) {
     if (pattern === 'random-soup') {
       randomise({ keepPreset: true });
+      showFeedback('Random soup');
       return;
     }
 
@@ -878,6 +895,7 @@ if (typeof document !== 'undefined') (() => {
     }
 
     generation = 0;
+    showFeedback(`${displayPresetName(pattern)} loaded`);
     requestDraw();
   }
 
@@ -1008,6 +1026,7 @@ if (typeof document !== 'undefined') (() => {
       isDrawing = false;
       isPanning = false;
       tapCandidate = null;
+      updateShellMode();
       pinchStartDistance = pointerDistance();
       pinchStartZoom = zoom;
       pinchStartPanX = panX;
@@ -1022,6 +1041,7 @@ if (typeof document !== 'undefined') (() => {
       isPanning = true;
       tapCandidate = null;
       lastPanPoint = toCanvasPoint(e);
+      updateShellMode();
       return;
     }
 
@@ -1038,6 +1058,7 @@ if (typeof document !== 'undefined') (() => {
 
     isDrawing = true;
     hoverCell = null;
+    updateShellMode();
     lastPaintIndex = -1;
     lastPaintPoint = null;
     paint(e);
@@ -1099,6 +1120,7 @@ if (typeof document !== 'undefined') (() => {
       lastTapPoint = tapCandidate.point;
       tapCandidate = null;
     }
+    updateShellMode();
     releasePointer(e.pointerId);
   }, { passive: false });
 
@@ -1109,6 +1131,7 @@ if (typeof document !== 'undefined') (() => {
     lastPaintIndex = -1;
     lastPaintPoint = null;
     if (tapCandidate?.pointerId === e.pointerId) tapCandidate = null;
+    updateShellMode();
     releasePointer(e.pointerId);
   });
 
