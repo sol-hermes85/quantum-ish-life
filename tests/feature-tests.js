@@ -684,6 +684,30 @@ test('mode changes can show brief feedback over the grid', () => {
   assert.match(js, /showFeedback\(t === 'paint' \? 'Paint mode' : 'Erase mode'\)/);
 });
 
+test('manual stepping reports the new generation without changing play mode', () => {
+  assert.match(js, /function manualStep\(\)/);
+  assert.match(js, /manualStep\(\)[\s\S]*step\(\);[\s\S]*showFeedback\(`Gen \$\{generation\}`\);/);
+  assert.match(js, /controls\.step\.addEventListener\('click', manualStep\);/);
+  assert.match(js, /else if \(action === 'step'\) manualStep\(\);/);
+  assert.match(html, /Step shows the new generation/);
+});
+
+test('reselecting the active paint tool avoids duplicate mode feedback', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testShouldChangeTool = shouldChangeTool;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testShouldChangeTool('paint', 'paint'), false);
+  assert.strictEqual(sandbox.window.__testShouldChangeTool('paint', 'erase'), true);
+  assert.match(js, /if \(!shouldChangeTool\(tool, t\)\) return;/);
+});
+
+test('button hover states brighten controls without shifting layout', () => {
+  const css = fs.readFileSync('styles.css', 'utf8');
+  assert.match(css, /button:hover\s*{[^}]*background:\s*rgba\(56, 56, 56, 0\.94\)/s);
+  assert.match(css, /button\.primary:hover\s*{[^}]*background:\s*#fff/s);
+});
+
 test('grid content actions show clear feedback', () => {
   assert.match(js, /showFeedback\('Randomised'\)/);
   assert.match(js, /showFeedback\('Grid cleared'\)/);

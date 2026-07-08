@@ -95,6 +95,10 @@ function setDisabledIfChanged(element, disabled) {
   return true;
 }
 
+function shouldChangeTool(currentTool, nextTool) {
+  return currentTool !== nextTool;
+}
+
 function screenToGridPoint(screenX, screenY, size, canvasWidth, canvasHeight, zoom, panX, panY) {
   return {
     x: Math.floor(((screenX - panX) / (canvasWidth * zoom)) * size),
@@ -860,6 +864,8 @@ if (typeof document !== 'undefined') (() => {
   }
 
   function setTool(t) {
+    if (!shouldChangeTool(tool, t)) return;
+
     tool = t;
     controls.paintMode.classList.toggle('primary', t === 'paint');
     controls.eraseMode.classList.toggle('primary', t === 'erase');
@@ -910,6 +916,11 @@ if (typeof document !== 'undefined') (() => {
     updateShellMode();
     if (shouldAutoCollapseControlsOnPlay(running, window.innerWidth, controlsCollapsed)) setControlsCollapsed(true);
     showFeedback(running ? 'Running' : 'Paused');
+  }
+
+  function manualStep() {
+    step();
+    showFeedback(`Gen ${generation}`);
   }
 
   function pauseForHiddenTab() {
@@ -1052,7 +1063,7 @@ if (typeof document !== 'undefined') (() => {
 
   controls.play.addEventListener('click', togglePlay);
 
-  controls.step.addEventListener('click', step);
+  controls.step.addEventListener('click', manualStep);
   controls.randomise.addEventListener('click', randomise);
   controls.invert.addEventListener('click', invertGrid);
   controls.clear.addEventListener('click', clearGrid);
@@ -1246,7 +1257,7 @@ if (typeof document !== 'undefined') (() => {
 
     e.preventDefault();
     if (action === 'play') togglePlay();
-    else if (action === 'step') step();
+    else if (action === 'step') manualStep();
     else if (action === 'randomise') randomise();
     else if (action === 'clear') clearGrid();
     else if (action === 'invert') invertGrid();

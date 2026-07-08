@@ -179,7 +179,13 @@ button {
 }
 
 button:hover {
+  background: rgba(56, 56, 56, 0.94);
   border-color: #888;
+}
+
+button.primary:hover {
+  background: #fff;
+  border-color: #fff;
 }
 
 button:disabled {
