@@ -48,7 +48,9 @@ p {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(circle at center, transparent 62%, rgba(16, 16, 16, 0.16) 100%);
+  background:
+    radial-gradient(circle at center, transparent 58%, rgba(16, 16, 16, 0.18) 100%),
+    linear-gradient(135deg, rgba(125, 211, 252, 0.08), transparent 34%, rgba(216, 180, 254, 0.08));
 }
 
 canvas {
@@ -71,7 +73,7 @@ canvas {
 
 .zoomControls {
   position: fixed;
-  left: 12px;
+  left: max(12px, env(safe-area-inset-left));
   top: 50%;
   transform: translateY(-50%);
   z-index: 1;
@@ -311,7 +313,7 @@ select {
 
 @media (max-width: 640px) {
   .zoomControls {
-    left: 8px;
+    left: max(8px, env(safe-area-inset-left));
     top: 42%;
   }
 

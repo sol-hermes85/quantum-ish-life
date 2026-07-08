@@ -235,7 +235,7 @@ test('keyboard shortcuts expose common actions', () => {
   assert.match(html, /D disco/);
   assert.match(html, /E paint\/erase/);
   assert.match(html, /H hide\/show controls/);
-  assert.match(html, /Z reset view/);
+  assert.match(html, /Z\/0 reset view/);
   assert.match(html, /\+\/− zoom/);
 
   const sandbox = { window: {}, console };
@@ -252,6 +252,7 @@ test('keyboard shortcuts expose common actions', () => {
   assert.strictEqual(sandbox.window.__testShortcut('d'), 'toggle-disco');
   assert.strictEqual(sandbox.window.__testShortcut('H'), 'toggle-controls');
   assert.strictEqual(sandbox.window.__testShortcut('z'), 'reset-view');
+  assert.strictEqual(sandbox.window.__testShortcut('0'), 'reset-view');
   assert.strictEqual(sandbox.window.__testShortcut('+'), 'zoom-in');
   assert.strictEqual(sandbox.window.__testShortcut('='), 'zoom-in');
   assert.strictEqual(sandbox.window.__testShortcut('-'), 'zoom-out');
@@ -703,6 +704,19 @@ test('mobile control overlays respect safe area insets', () => {
   assert.match(css, /env\(safe-area-inset-bottom\)/);
   assert.match(css, /env\(safe-area-inset-left\)/);
   assert.match(css, /env\(safe-area-inset-right\)/);
+  assert.match(css, /left:\s*max\(12px, env\(safe-area-inset-left\)\)/);
+});
+
+test('high display pixel ratios are capped to keep canvas work reasonable', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testDpr = effectiveDevicePixelRatio;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testDpr(3), 2);
+  assert.strictEqual(sandbox.window.__testDpr(1.5), 1.5);
+  assert.strictEqual(sandbox.window.__testDpr(0), 1);
+  assert.match(js, /const dpr = effectiveDevicePixelRatio\(window\.devicePixelRatio\);/);
+  assert.match(README, /caps very high display pixel ratios/);
 });
 
 test('manual grid actions clear stale preset labels', () => {

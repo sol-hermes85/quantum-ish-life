@@ -36,6 +36,10 @@ function clampZoomLevel(value) {
   return Math.max(0.25, Math.min(4, Math.round(value * 100) / 100));
 }
 
+function effectiveDevicePixelRatio(value) {
+  return Math.max(1, Math.min(2, value || 1));
+}
+
 function nextZoomLevel(current, wheelDelta) {
   const direction = wheelDelta < 0 ? 1 : -1;
   const next = current + direction * 0.1;
@@ -180,7 +184,8 @@ function keyboardShortcutAction(key) {
     d: 'toggle-disco',
     r: 'randomise',
     s: 'step',
-    z: 'reset-view'
+    z: 'reset-view',
+    0: 'reset-view'
   };
 
   return shortcuts[String(key).toLowerCase()] || null;
@@ -517,7 +522,7 @@ if (typeof document !== 'undefined') (() => {
   }
 
   function resizeCanvasToWindow() {
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = effectiveDevicePixelRatio(window.devicePixelRatio);
     const width = Math.max(1, Math.floor(window.innerWidth * dpr));
     const height = Math.max(1, Math.floor(window.innerHeight * dpr));
 

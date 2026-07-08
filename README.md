@@ -20,7 +20,7 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 - **One finger drag**: paint or erase cells; fast drags fill the gaps between cells, desktop mouse users get a crosshair cursor and filled cell preview before painting, erase/pan modes change the cursor, and the active paint/erase button is visually marked
 - **Alt-drag**: temporarily flip paint and erase for quick corrections without changing the selected tool
 - **Two finger pinch / drag**: zoom and pan around the grid
-- **Double-click / double-tap**: reset the view quickly from the grid
+- **Double-click / double-tap / `0` key**: reset the view quickly from the grid or keyboard
 - **Shift-drag / middle-drag / right-drag**: pan the grid with a mouse or trackpad without painting
 - **Scroll wheel / + − buttons**: zoom in or out on the grid
 - **Reset view**: return zoom and pan to the default view; the current zoom level is shown in the stats panel
@@ -43,7 +43,7 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 - **Hidden tabs**: the simulation pauses when the browser tab is hidden to avoid wasting battery in the background
 - **Primary controls**: sit on a subtle glass tray so they remain readable over busy patterns
 - **Underpopulation / survival / overpopulation / birth / noise**: tune the probability rules
-- **Keyboard shortcuts**: Space or `P` play/pause, `S` step, `R` random, `C` clear, `I` invert, `D` disco mode, `E` paint/erase, `H` hide/show controls, `Z` reset view, `+` / `-` zoom. Held shortcuts are ignored after the first keydown so one long press does not flood steps or resets
+- **Keyboard shortcuts**: Space or `P` play/pause, `S` step, `R` random, `C` clear, `I` invert, `D` disco mode, `E` paint/erase, `H` hide/show controls, `Z` or `0` reset view, `+` / `-` zoom. Held shortcuts are ignored after the first keydown so one long press does not flood steps or resets
 
 ## Local development
 
@@ -65,4 +65,4 @@ http://localhost:8000
 
 This is intentionally lightweight and dependency-free. No framework, no build chain, no npm ceremony.
 
-The interface also respects reduced-motion preferences, keeping the grid interaction crisp without unnecessary animation, and resets the simulation clock on resume so play starts smoothly after a pause.
+The interface also respects reduced-motion preferences, keeps the floating zoom controls inside safe-area insets, caps very high display pixel ratios to avoid excessive canvas work, and resets the simulation clock on resume so play starts smoothly after a pause.
