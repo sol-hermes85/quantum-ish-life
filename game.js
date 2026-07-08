@@ -136,7 +136,11 @@ function interpolatedGridPoints(from, to) {
 }
 
 function shouldPanPointer(event) {
-  return event.button === 2 || event.shiftKey;
+  return event.button === 1 || event.button === 2 || event.shiftKey;
+}
+
+function shouldClearHoverCell(hoverCell) {
+  return hoverCell !== null;
 }
 
 function shouldDrawGuideGrid(cellWidth, cellHeight) {
@@ -1078,6 +1082,7 @@ if (typeof document !== 'undefined') (() => {
   });
 
   canvas.addEventListener('pointerleave', () => {
+    if (!shouldClearHoverCell(hoverCell)) return;
     hoverCell = null;
     requestDraw();
   });

@@ -438,9 +438,9 @@ test('two finger drag pans the zoomed grid view', () => {
 });
 
 test('desktop pointer users can pan without painting', () => {
-  assert.match(html, /Shift-drag or right-drag pans the grid/);
+  assert.match(html, /Shift-drag, middle-drag, or right-drag pans the grid/);
   assert.match(js, /function shouldPanPointer/);
-  assert.match(js, /event\.button === 2 \|\| event\.shiftKey/);
+  assert.match(js, /event\.button === 1 \|\| event\.button === 2 \|\| event\.shiftKey/);
   assert.match(js, /function panFromPointer/);
   assert.match(js, /canvas\.addEventListener\('contextmenu'/);
 });
@@ -536,6 +536,16 @@ test('hover preview skips cells outside the visible canvas', () => {
   assert.match(js, /if \(!isRectVisible\(x, y, cellX, cellY, canvas\.width, canvas\.height\)\) return;/);
 });
 
+test('leaving the canvas only redraws when a hover preview was visible', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testShouldClearHover = shouldClearHoverCell;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testShouldClearHover(null), false);
+  assert.strictEqual(sandbox.window.__testShouldClearHover({ x: 1, y: 2 }), true);
+  assert.match(js, /if \(!shouldClearHoverCell\(hoverCell\)\) return;/);
+});
+
 test('mode changes can show brief feedback over the grid', () => {
   assert.match(html, /id="feedback"/);
   assert.match(html, /aria-atomic="true"/);
@@ -546,6 +556,18 @@ test('mode changes can show brief feedback over the grid', () => {
   assert.match(js, /showFeedback\(t === 'paint' \? 'Paint mode' : 'Erase mode'\)/);
 });
 
+test('desktop panning supports shift, middle, and right drag', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testShouldPanPointer = shouldPanPointer;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testShouldPanPointer({ button: 0, shiftKey: true }), true);
+  assert.strictEqual(sandbox.window.__testShouldPanPointer({ button: 1, shiftKey: false }), true);
+  assert.strictEqual(sandbox.window.__testShouldPanPointer({ button: 2, shiftKey: false }), true);
+  assert.strictEqual(sandbox.window.__testShouldPanPointer({ button: 0, shiftKey: false }), false);
+  assert.match(html, /middle-drag/);
+});
+
 test('controls have subtle motion polish without moving the grid', () => {
   const css = fs.readFileSync('styles.css', 'utf8');
   assert.match(css, /\.feedback\s*{/);
@@ -553,6 +575,14 @@ test('controls have subtle motion polish without moving the grid', () => {
   assert.match(css, /transition:\s*opacity 160ms ease, transform 160ms ease/);
   assert.match(css, /button:active/);
   assert.match(css, /transition:\s*max-height 180ms ease, background-color 180ms ease/);
+});
+
+test('primary controls sit on a subtle glass tray with a clear canvas cursor', () => {
+  const css = fs.readFileSync('styles.css', 'utf8');
+
+  assert.match(css, /canvas\s*{[^}]*cursor:\s*crosshair/s);
+  assert.match(css, /\.buttons\s*{[^}]*backdrop-filter:\s*blur\(6px\)/s);
+  assert.match(css, /\.buttons\s*{[^}]*border-radius:\s*13px/s);
 });
 
 test('canvas has a subtle vignette so the full-screen grid feels less stark', () => {

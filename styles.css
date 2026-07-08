@@ -58,6 +58,7 @@ canvas {
   background: #fff;
   image-rendering: pixelated;
   touch-action: none;
+  cursor: crosshair;
 }
 
 .zoomControls {
@@ -140,6 +141,12 @@ canvas {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 6px;
+  padding: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 13px;
+  background: rgba(16, 16, 16, 0.62);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
 }
 
 button {
