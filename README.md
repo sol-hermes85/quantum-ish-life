@@ -32,7 +32,7 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 - **Colour hue / saturation**: tune the colour used for live cells
 - **Disco mode**: cycle cells through the seven rainbow colours, changing each generation
 - **Speed**: generations per second
-- **Tool**: shows whether drag will paint or erase cells; reselecting the active tool is ignored to avoid noisy duplicate feedback, and play, pause, random, clear, invert, pattern load, reset-view, painting, erasing, manual stepping, and zoom changes also show a brief feedback pill over the grid
+- **Tool**: shows whether drag will paint or erase cells; reselecting the active tool is ignored to avoid noisy duplicate feedback, and play, pause with generation context, random, clear, invert, pattern load, reset-view, painting, erasing, manual stepping, and zoom changes also show a brief feedback pill over the grid
 - **Running state**: adds a subtle colour wash over the grid so play feels alive without adding visual clutter
 - **Avg probability**: shows the average live probability across the grid
 - **Live count**: shows how many cells currently have at least 50% live probability
@@ -44,7 +44,7 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 - **Hidden tabs**: the simulation pauses when the browser tab is hidden to avoid wasting battery in the background
 - **Primary controls**: sit on a subtle glass tray with brighter hover states so they remain readable over busy patterns
 - **Underpopulation / survival / overpopulation / birth / noise**: tune the probability rules
-- **Keyboard shortcuts**: Space or `P` play/pause, `S` step, `R` random, `C` clear, `I` invert, `D` disco mode, `E` paint/erase, `1` paint, `2` erase, `H` hide/show controls, `Z`, `Home`, or `0` reset view, `+` / `-` zoom. Held shortcuts are ignored after the first keydown so one long press does not flood steps or resets
+- **Keyboard shortcuts**: Space or `P` play/pause, `Esc` pause, `S` step, `R` random, `C` clear, `I` invert, `D` disco mode, `E` paint/erase, `1` paint, `2` erase, `H` hide/show controls, `Z`, `Home`, or `0` reset view, `+` / `-` zoom. Held shortcuts are ignored after the first keydown so one long press does not flood steps or resets
 
 ## Local development
 
@@ -66,4 +66,4 @@ http://localhost:8000
 
 This is intentionally lightweight and dependency-free. No framework, no build chain, no npm ceremony.
 
-The interface also respects reduced-motion preferences, keeps the floating zoom controls inside safe-area insets, caps very high display pixel ratios to avoid excessive canvas work, skips unchanged stat/control-label and disabled-button writes, avoids redundant reset-view and clamped pinch redraws, keeps the fine guide grid subtle as cells get larger, avoids redraws for hidden colour changes while disco mode owns the palette, and resets the simulation clock on resume so play starts smoothly after a pause.
+The interface also respects reduced-motion preferences, keeps the floating zoom controls inside safe-area insets, caps very high display pixel ratios to avoid excessive canvas work, skips unchanged stat/control-label and disabled-button writes, avoids redundant reset-view and clamped pinch redraws, keeps the fine guide grid subtle as cells get larger, avoids redraws for hidden colour changes while disco mode owns the palette, avoids a per-cell index helper call during simulation steps, and resets the simulation clock on resume so play starts smoothly after a pause.

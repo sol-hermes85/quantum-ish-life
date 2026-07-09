@@ -191,6 +191,7 @@ function visibleGridLineRange(start, cellSize, totalCells, viewportSize) {
 
 function keyboardShortcutAction(key) {
   const shortcuts = {
+    escape: 'pause',
     ' ': 'play',
     1: 'paint-tool',
     2: 'erase-tool',
@@ -221,6 +222,10 @@ function zoomPercentLabel(value) {
 function pageTitleForState(running, generation) {
   const status = running ? 'Running' : 'Paused';
   return `${status} · Gen ${generation} · Quantum-ish Life`;
+}
+
+function pauseFeedbackLabel(generation) {
+  return `Paused · Gen ${generation}`;
 }
 
 function nextTickTimestampOnResume(previousRunning, nextRunning, now, previousTick) {
@@ -657,8 +662,9 @@ if (typeof document !== 'undefined') (() => {
     const ageLimit = Number(controls.ageLimit.value);
 
     for (let y = 0; y < size; y++) {
+      const rowOffset = y * size;
       for (let x = 0; x < size; x++) {
-        const i = idx(x, y);
+        const i = rowOffset + x;
         const alive = collapsed[i] === 1;
         const age = alive ? ages[i] + 1 : 0;
         const n = countCollapsedNeighbours(collapsed, size, x, y);
@@ -926,7 +932,12 @@ if (typeof document !== 'undefined') (() => {
     document.title = pageTitleForState(running, generation);
     updateShellMode();
     if (shouldAutoCollapseControlsOnPlay(running, window.innerWidth, controlsCollapsed)) setControlsCollapsed(true);
-    showFeedback(running ? 'Running' : 'Paused');
+    showFeedback(running ? 'Running' : pauseFeedbackLabel(generation));
+  }
+
+  function pauseSimulation() {
+    if (!running) return;
+    togglePlay();
   }
 
   function manualStep() {
@@ -1268,6 +1279,7 @@ if (typeof document !== 'undefined') (() => {
 
     e.preventDefault();
     if (action === 'play') togglePlay();
+    else if (action === 'pause') pauseSimulation();
     else if (action === 'step') manualStep();
     else if (action === 'randomise') randomise();
     else if (action === 'clear') clearGrid();

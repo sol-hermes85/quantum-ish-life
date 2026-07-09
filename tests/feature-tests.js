@@ -235,6 +235,7 @@ test('invert control flips probabilities and keeps ages sensible', () => {
 
 test('keyboard shortcuts expose common actions', () => {
   assert.match(html, /Space\/P play\/pause/);
+  assert.match(html, /Esc pause/);
   assert.match(html, /I invert/);
   assert.match(html, /D disco/);
   assert.match(html, /E paint\/erase/);
@@ -248,6 +249,7 @@ test('keyboard shortcuts expose common actions', () => {
   vm.runInContext(`${js}\nwindow.__testShortcut = keyboardShortcutAction;`, sandbox);
 
   assert.strictEqual(sandbox.window.__testShortcut(' '), 'play');
+  assert.strictEqual(sandbox.window.__testShortcut('Escape'), 'pause');
   assert.strictEqual(sandbox.window.__testShortcut('1'), 'paint-tool');
   assert.strictEqual(sandbox.window.__testShortcut('2'), 'erase-tool');
   assert.strictEqual(sandbox.window.__testShortcut('p'), 'play');
@@ -317,6 +319,13 @@ test('paint and erase buttons expose their selected state clearly', () => {
 test('simulation step counts neighbours directly without wrapper overhead', () => {
   assert.doesNotMatch(js, /function neighbours/);
   assert.match(js, /const n = countCollapsedNeighbours\(collapsed, size, x, y\);/);
+});
+
+test('simulation step avoids a per-cell index helper call', () => {
+  assert.match(js, /const rowOffset = y \* size;/);
+  assert.match(js, /const i = rowOffset \+ x;/);
+  assert.doesNotMatch(js, /const i = idx\(x, y\);\n        const alive = collapsed\[i\] === 1;/);
+  assert.match(README, /avoids a per-cell index helper call during simulation steps/);
 });
 
 test('live percentage helper formats the current filled area', () => {
@@ -685,9 +694,26 @@ test('mode changes can show brief feedback over the grid', () => {
   assert.match(html, /aria-atomic="true"/);
   assert.match(html, /Brief feedback appears over the grid/);
   assert.match(js, /function showFeedback/);
-  assert.match(js, /showFeedback\(running \? 'Running' : 'Paused'\)/);
+  assert.match(js, /showFeedback\(running \? 'Running' : pauseFeedbackLabel\(generation\)\)/);
   assert.match(js, /showFeedback\('View reset'\)/);
   assert.match(js, /showFeedback\(t === 'paint' \? 'Paint mode' : 'Erase mode'\)/);
+});
+
+test('pause feedback includes the generation reached', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testPauseFeedback = pauseFeedbackLabel;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testPauseFeedback(12), 'Paused · Gen 12');
+  assert.match(html, /generation reached when pausing/);
+  assert.match(README, /pause with generation context/);
+});
+
+test('escape pauses without toggling a stopped simulation back on', () => {
+  assert.match(html, /Esc pauses without resetting anything/);
+  assert.match(js, /function pauseSimulation\(\)/);
+  assert.match(js, /if \(!running\) return;/);
+  assert.match(js, /else if \(action === 'pause'\) pauseSimulation\(\);/);
 });
 
 test('manual stepping reports the new generation without changing play mode', () => {
