@@ -289,6 +289,18 @@ label span:last-child {
   font-variant-numeric: tabular-nums;
 }
 
+.trendRising {
+  color: #86efac;
+}
+
+.trendFalling {
+  color: #fca5a5;
+}
+
+.trendSteady {
+  color: #e5e7eb;
+}
+
 input[type="range"],
 select {
   width: 100%;

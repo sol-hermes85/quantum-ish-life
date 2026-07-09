@@ -341,7 +341,7 @@ test('live percentage helper formats the current filled area', () => {
 test('population trend label summarises whether the live count is moving', () => {
   assert.match(html, /Trend:/);
   assert.match(html, /id="populationTrend" aria-live="polite"/);
-  assert.match(html, /trend stat shows whether the live population is rising, falling, or steady/);
+  assert.match(html, /trend stat shows whether the live population is rising, falling, or steady, with a subtle colour cue/);
   assert.match(README, /Trend/);
 
   const sandbox = { window: {}, console };
@@ -352,6 +352,30 @@ test('population trend label summarises whether the live count is moving', () =>
   assert.strictEqual(sandbox.window.__testPopulationTrend(9, 10), 'rising');
   assert.strictEqual(sandbox.window.__testPopulationTrend(11, 10), 'falling');
   assert.strictEqual(sandbox.window.__testPopulationTrend(10, 10), 'steady');
+});
+
+test('population trend gets a subtle colour cue', () => {
+  const css = fs.readFileSync('styles.css', 'utf8');
+  const toggles = [];
+  const element = {
+    classList: {
+      toggle: (name, enabled) => toggles.push([name, enabled])
+    }
+  };
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testTrendClass = setPopulationTrendClass;`, sandbox);
+
+  sandbox.window.__testTrendClass(element, 'rising');
+
+  assert.deepStrictEqual(toggles, [
+    ['trendRising', true],
+    ['trendFalling', false],
+    ['trendSteady', false]
+  ]);
+  assert.match(css, /\.trendRising/);
+  assert.match(css, /\.trendFalling/);
+  assert.match(css, /\.trendSteady/);
 });
 
 test('drag paint strokes report how many cells changed', () => {
@@ -438,7 +462,15 @@ test('zoom feedback uses the same rounded percent label as the stats panel', () 
   assert.strictEqual(sandbox.window.__testZoomPercent(1.234), '123%');
   assert.match(js, /setTextIfChanged\(labels\.zoomLevel, zoomPercentLabel\(zoom\)\);/);
   assert.match(js, /showFeedback\(`Zoom \$\{zoomPercentLabel\(zoom\)\}`\);/);
-  assert.match(html, /main mode, zoom, or grid content changes/);
+  assert.match(html, /main mode, pinch zoom, button zoom, or grid content changes/);
+});
+
+test('pinch gestures show the zoom percentage when they end', () => {
+  assert.match(README, /brief zoom percentage shown when the pinch ends/);
+  assert.match(js, /let pinchGestureActive = false;/);
+  assert.match(js, /pinchGestureActive = true;/);
+  assert.match(js, /const completedPinch = pinchGestureActive && activePointers\.size < 2;/);
+  assert.match(js, /showFeedback\(`Zoom \$\{zoomPercentLabel\(zoom\)\}`\);/);
 });
 
 test('browser tab title reflects whether the simulation is running', () => {
@@ -959,6 +991,20 @@ test('certain collapsed probabilities avoid random number work', () => {
   assert.strictEqual(sandbox.window.__testCollapseProbability(0), 0);
   assert.strictEqual(sandbox.window.__testCollapseProbability(1), 1);
   assert.match(js, /collapsed\[i\] = collapseProbability\(grid\[i\]\);/);
+});
+
+test('canvas alpha is primed once per image buffer instead of every draw cell', () => {
+  const sandbox = { window: {}, console, Uint8ClampedArray };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testPrimeAlpha = primeImageAlpha;`, sandbox);
+
+  const imageData = { data: new Uint8ClampedArray(8) };
+  sandbox.window.__testPrimeAlpha(imageData);
+
+  assert.deepStrictEqual([...imageData.data], [0, 0, 0, 255, 0, 0, 0, 255]);
+  assert.match(js, /primeImageAlpha\(image\);/);
+  assert.doesNotMatch(js, /pixels\[o \+ 3\] = 255;/);
+  assert.match(README, /primes canvas alpha once per buffer/);
 });
 
 test('zero noise avoids per-cell random number work in the simulation step', () => {

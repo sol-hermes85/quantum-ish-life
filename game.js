@@ -231,6 +231,12 @@ function populationTrendLabel(previousLiveCount, liveCount) {
   return 'steady';
 }
 
+function setPopulationTrendClass(element, trend) {
+  element.classList.toggle('trendRising', trend === 'rising');
+  element.classList.toggle('trendFalling', trend === 'falling');
+  element.classList.toggle('trendSteady', trend === 'steady');
+}
+
 function setDocumentTitleIfChanged(documentRef, title) {
   if (documentRef.title === title) return false;
   documentRef.title = title;
@@ -479,6 +485,12 @@ function collapseProbability(probability) {
   return Math.random() < probability ? 1 : 0;
 }
 
+function primeImageAlpha(imageData) {
+  for (let i = 3; i < imageData.data.length; i += 4) {
+    imageData.data[i] = 255;
+  }
+}
+
 if (typeof document !== 'undefined') (() => {
   const canvas = document.getElementById('world');
   const ctx = canvas.getContext('2d', { alpha: false });
@@ -574,6 +586,7 @@ if (typeof document !== 'undefined') (() => {
   let pinchStartPanX = 0;
   let pinchStartPanY = 0;
   let pinchStartMidpoint = { x: 0, y: 0 };
+  let pinchGestureActive = false;
   let feedbackTimer = 0;
   let lastTapTime = 0;
   let lastTapPoint = null;
@@ -593,6 +606,7 @@ if (typeof document !== 'undefined') (() => {
     bufferCanvas.width = size;
     bufferCanvas.height = size;
     image = bufferCtx.createImageData(size, size);
+    primeImageAlpha(image);
   }
 
   function resizeCanvasToWindow() {
@@ -749,7 +763,6 @@ if (typeof document !== 'undefined') (() => {
       pixels[o] = colour.r;
       pixels[o + 1] = colour.g;
       pixels[o + 2] = colour.b;
-      pixels[o + 3] = 255;
     }
 
     bufferCtx.putImageData(image, 0, 0);
@@ -768,7 +781,9 @@ if (typeof document !== 'undefined') (() => {
     setTextIfChanged(labels.average, (total / grid.length).toFixed(3));
     setTextIfChanged(labels.liveCount, String(liveCount));
     setTextIfChanged(labels.livePercent, populationPercent(liveCount, grid.length));
-    setTextIfChanged(labels.populationTrend, populationTrendLabel(lastLiveCount, liveCount));
+    const trend = populationTrendLabel(lastLiveCount, liveCount);
+    setTextIfChanged(labels.populationTrend, trend);
+    setPopulationTrendClass(labels.populationTrend, trend);
     setTextIfChanged(labels.zoomLevel, zoomPercentLabel(zoom));
     setTextIfChanged(labels.runStatus, running ? 'Running' : 'Paused');
     updateZoomControlState();
@@ -1166,6 +1181,7 @@ if (typeof document !== 'undefined') (() => {
       isDrawing = false;
       isPanning = false;
       tapCandidate = null;
+      pinchGestureActive = true;
       updateShellMode();
       pinchStartDistance = pointerDistance();
       pinchStartZoom = zoom;
@@ -1255,6 +1271,7 @@ if (typeof document !== 'undefined') (() => {
   canvas.addEventListener('pointerup', e => {
     e.preventDefault();
     activePointers.delete(e.pointerId);
+    const completedPinch = pinchGestureActive && activePointers.size < 2;
     const wasDrawing = isDrawing;
     isDrawing = false;
     isPanning = false;
@@ -1269,7 +1286,10 @@ if (typeof document !== 'undefined') (() => {
     if (wasDrawing) {
       const message = paintStrokeFeedback(strokeFeedbackTool, strokeChangedCount);
       if (message) showFeedback(message);
+    } else if (completedPinch) {
+      showFeedback(`Zoom ${zoomPercentLabel(zoom)}`);
     }
+    if (completedPinch) pinchGestureActive = false;
     strokeChangedCount = 0;
     updateShellMode();
     releasePointer(e.pointerId);
@@ -1282,6 +1302,7 @@ if (typeof document !== 'undefined') (() => {
     lastPaintIndex = -1;
     lastPaintPoint = null;
     if (tapCandidate?.pointerId === e.pointerId) tapCandidate = null;
+    if (activePointers.size < 2) pinchGestureActive = false;
     strokeChangedCount = 0;
     updateShellMode();
     releasePointer(e.pointerId);

@@ -19,7 +19,7 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 - **Clear**: reset the grid
 - **One finger drag**: paint or erase cells; fast drags fill the gaps between cells, stroke feedback reports how many cells changed, desktop mouse users get a crosshair cursor and filled cell preview before painting, erase/pan modes change the cursor, and the active paint/erase button is visually marked
 - **Alt-drag**: temporarily flip paint and erase for quick corrections without changing the selected tool; the desktop hover preview also flips so you can see the temporary tool before drawing
-- **Two finger pinch / drag**: zoom and pan around the grid
+- **Two finger pinch / drag**: zoom and pan around the grid, with a brief zoom percentage shown when the pinch ends
 - **Double-click / double-tap / `Home` / `0` key**: reset the view quickly from the grid or keyboard
 - **Shift-drag / middle-drag / right-drag**: pan the grid with a mouse or trackpad without painting
 - **Scroll wheel / + − buttons**: zoom in or out on the grid; zoom buttons dim when the view is already at its limit
@@ -37,7 +37,7 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 - **Avg probability**: shows the average live probability across the grid
 - **Live count**: shows how many cells currently have at least 50% live probability
 - **Fill**: shows that live count as a percentage of the current grid
-- **Trend**: shows whether the live population is rising, falling, or steady between draws
+- **Trend**: shows whether the live population is rising, falling, or steady between draws, with a subtle colour cue
 - **Stats panel**: key changing values announce politely for assistive technology without interrupting play
 - **Browser tab title**: shows whether the simulation is running and the current generation
 - **Hide / Show controls**: collapse the tuning panel so the grid stays visible while the simulation runs
@@ -67,4 +67,4 @@ http://localhost:8000
 
 This is intentionally lightweight and dependency-free. No framework, no build chain, no npm ceremony.
 
-The interface also respects reduced-motion preferences, keeps the floating zoom controls inside safe-area insets, gives range sliders a larger grab area, caps very high display pixel ratios to avoid excessive canvas work, skips unchanged stat/control-label, title, and disabled-button writes, avoids redundant reset-view and clamped pinch redraws, keeps the fine guide grid subtle as cells get larger, avoids redraws for hidden colour changes while disco mode owns the palette, avoids a per-cell index helper call during simulation steps, and resets the simulation clock on resume so play starts smoothly after a pause.
+The interface also respects reduced-motion preferences, keeps the floating zoom controls inside safe-area insets, gives range sliders a larger grab area, caps very high display pixel ratios to avoid excessive canvas work, primes canvas alpha once per buffer instead of rewriting it for every cell draw, skips unchanged stat/control-label, title, and disabled-button writes, avoids redundant reset-view and clamped pinch redraws, keeps the fine guide grid subtle as cells get larger, avoids redraws for hidden colour changes while disco mode owns the palette, avoids a per-cell index helper call during simulation steps, and resets the simulation clock on resume so play starts smoothly after a pause.
