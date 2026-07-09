@@ -224,6 +224,19 @@ function pageTitleForState(running, generation) {
   return `${status} · Gen ${generation} · Quantum-ish Life`;
 }
 
+function populationTrendLabel(previousLiveCount, liveCount) {
+  if (previousLiveCount === null) return 'steady';
+  if (liveCount > previousLiveCount) return 'rising';
+  if (liveCount < previousLiveCount) return 'falling';
+  return 'steady';
+}
+
+function setDocumentTitleIfChanged(documentRef, title) {
+  if (documentRef.title === title) return false;
+  documentRef.title = title;
+  return true;
+}
+
 function pauseFeedbackLabel(generation) {
   return `Paused · Gen ${generation}`;
 }
@@ -507,6 +520,7 @@ if (typeof document !== 'undefined') (() => {
     average: $('average'),
     liveCount: $('liveCount'),
     livePercent: $('livePercent'),
+    populationTrend: $('populationTrend'),
     toolStatus: $('toolStatus'),
     zoomLevel: $('zoomLevel'),
     runStatus: $('runStatus'),
@@ -533,6 +547,7 @@ if (typeof document !== 'undefined') (() => {
   let ages = new Uint16Array(size * size);
   let nextAges = new Uint16Array(size * size);
   let generation = 0;
+  let lastLiveCount = null;
   let running = false;
   let lastTick = 0;
   let isDrawing = false;
@@ -632,6 +647,7 @@ if (typeof document !== 'undefined') (() => {
     }
 
     generation = 0;
+    lastLiveCount = null;
     requestDraw();
   }
 
@@ -653,6 +669,7 @@ if (typeof document !== 'undefined') (() => {
     }
 
     generation = 0;
+    lastLiveCount = null;
     if (!keepPreset) showFeedback('Randomised');
     requestDraw();
   }
@@ -751,10 +768,12 @@ if (typeof document !== 'undefined') (() => {
     setTextIfChanged(labels.average, (total / grid.length).toFixed(3));
     setTextIfChanged(labels.liveCount, String(liveCount));
     setTextIfChanged(labels.livePercent, populationPercent(liveCount, grid.length));
+    setTextIfChanged(labels.populationTrend, populationTrendLabel(lastLiveCount, liveCount));
     setTextIfChanged(labels.zoomLevel, zoomPercentLabel(zoom));
     setTextIfChanged(labels.runStatus, running ? 'Running' : 'Paused');
     updateZoomControlState();
-    document.title = pageTitleForState(running, generation);
+    setDocumentTitleIfChanged(document, pageTitleForState(running, generation));
+    lastLiveCount = liveCount;
     if (labelsDirty) updateLabels();
   }
 
@@ -943,7 +962,7 @@ if (typeof document !== 'undefined') (() => {
     controls.play.classList.toggle('primary', !running);
     controls.play.setAttribute('aria-pressed', String(running));
     labels.runStatus.textContent = running ? 'Running' : 'Paused';
-    document.title = pageTitleForState(running, generation);
+    setDocumentTitleIfChanged(document, pageTitleForState(running, generation));
     updateShellMode();
     if (shouldAutoCollapseControlsOnPlay(running, window.innerWidth, controlsCollapsed)) setControlsCollapsed(true);
     showFeedback(running ? 'Running' : pauseFeedbackLabel(generation));
@@ -967,7 +986,7 @@ if (typeof document !== 'undefined') (() => {
     controls.play.classList.add('primary');
     controls.play.setAttribute('aria-pressed', 'false');
     labels.runStatus.textContent = 'Paused';
-    document.title = pageTitleForState(running, generation);
+    setDocumentTitleIfChanged(document, pageTitleForState(running, generation));
     updateShellMode();
   }
 
@@ -976,6 +995,7 @@ if (typeof document !== 'undefined') (() => {
     grid.fill(0);
     ages.fill(0);
     generation = 0;
+    lastLiveCount = null;
     showFeedback('Grid cleared');
     requestDraw();
   }
@@ -984,6 +1004,7 @@ if (typeof document !== 'undefined') (() => {
     resetPatternSelection();
     invertProbabilityGrid(grid, ages);
     generation = 0;
+    lastLiveCount = null;
     showFeedback('Grid inverted');
     requestDraw();
   }
@@ -1013,6 +1034,7 @@ if (typeof document !== 'undefined') (() => {
     }
 
     generation = 0;
+    lastLiveCount = null;
     showFeedback(`${displayPresetName(pattern)} loaded`);
     requestDraw();
   }

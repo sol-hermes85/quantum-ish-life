@@ -338,6 +338,22 @@ test('live percentage helper formats the current filled area', () => {
   assert.strictEqual(sandbox.window.__testPopulationPercent(5, 0), '0.0%');
 });
 
+test('population trend label summarises whether the live count is moving', () => {
+  assert.match(html, /Trend:/);
+  assert.match(html, /id="populationTrend" aria-live="polite"/);
+  assert.match(html, /trend stat shows whether the live population is rising, falling, or steady/);
+  assert.match(README, /Trend/);
+
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testPopulationTrend = populationTrendLabel;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testPopulationTrend(null, 10), 'steady');
+  assert.strictEqual(sandbox.window.__testPopulationTrend(9, 10), 'rising');
+  assert.strictEqual(sandbox.window.__testPopulationTrend(11, 10), 'falling');
+  assert.strictEqual(sandbox.window.__testPopulationTrend(10, 10), 'steady');
+});
+
 test('drag paint strokes report how many cells changed', () => {
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
@@ -432,7 +448,7 @@ test('browser tab title reflects whether the simulation is running', () => {
 
   assert.strictEqual(sandbox.window.__testPageTitle(false, 0), 'Paused · Gen 0 · Quantum-ish Life');
   assert.strictEqual(sandbox.window.__testPageTitle(true, 12), 'Running · Gen 12 · Quantum-ish Life');
-  assert.match(js, /document\.title = pageTitleForState\(running, generation\);/);
+  assert.match(js, /setDocumentTitleIfChanged\(document, pageTitleForState\(running, generation\)\);/);
 });
 
 test('resuming play resets the simulation clock for a smooth first tick', () => {
@@ -858,6 +874,13 @@ test('keyboard users get visible focus outlines on controls', () => {
   assert.match(css, /outline:\s*3px solid #7dd3fc/);
 });
 
+test('range sliders have a larger grab area for touch and trackpads', () => {
+  const css = fs.readFileSync('styles.css', 'utf8');
+  assert.match(css, /input\[type="range"\],[\s\S]*select \{[\s\S]*min-height:\s*32px/s);
+  assert.match(css, /input\[type="range"\]\s*{[^}]*cursor:\s*ew-resize/s);
+  assert.match(README, /gives range sliders a larger grab area/);
+});
+
 test('mobile control overlays respect safe area insets', () => {
   const css = fs.readFileSync('styles.css', 'utf8');
   assert.match(css, /env\(safe-area-inset-top\)/);
@@ -950,7 +973,21 @@ test('changing stats use polite live regions for assistive technology', () => {
   assert.match(html, /id="generation" aria-live="polite"/);
   assert.match(html, /id="average" aria-live="polite"/);
   assert.match(html, /id="liveCount" aria-live="polite"/);
+  assert.match(html, /id="populationTrend" aria-live="polite"/);
   assert.match(html, /id="runStatus" aria-live="polite"/);
+});
+
+test('document title updates are skipped when unchanged', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testSetTitle = setDocumentTitleIfChanged;`, sandbox);
+
+  const doc = { title: 'same' };
+  assert.strictEqual(sandbox.window.__testSetTitle(doc, 'same'), false);
+  assert.strictEqual(sandbox.window.__testSetTitle(doc, 'new'), true);
+  assert.strictEqual(doc.title, 'new');
+  assert.match(js, /setDocumentTitleIfChanged\(document, pageTitleForState\(running, generation\)\);/);
+  assert.match(README, /title, and disabled-button writes/);
 });
 
 test('canvas points assistive technology to the play instructions', () => {

@@ -292,8 +292,12 @@ label span:last-child {
 input[type="range"],
 select {
   width: 100%;
-  min-height: 24px;
+  min-height: 32px;
   accent-color: #f2f2f2;
+}
+
+input[type="range"] {
+  cursor: ew-resize;
 }
 
 select {
