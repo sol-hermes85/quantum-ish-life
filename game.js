@@ -443,6 +443,17 @@ function paintStrokeFeedback(tool, changedCount) {
   return `${verb} ${changedCount} ${noun}`;
 }
 
+function feedbackDuration(message) {
+  return message.length > 18 ? 1300 : 900;
+}
+
+function tapMemoryFromPointerUp(tapCandidate, timeStamp, point) {
+  return {
+    time: timeStamp || tapCandidate.time,
+    point
+  };
+}
+
 function setTextIfChanged(element, value) {
   if (element.textContent === value) return false;
   element.textContent = value;
@@ -541,6 +552,7 @@ if (typeof document !== 'undefined') (() => {
   let selectedLiveColour = hslToRgb(200, 0.85, 0.45);
   let colourDirty = false;
   let hoverCell = null;
+  let hoverPreviewTool = 'paint';
   const activePointers = new Map();
   let pinchStartDistance = 0;
   let pinchStartZoom = 1;
@@ -793,8 +805,8 @@ if (typeof document !== 'undefined') (() => {
     const y = panY + hoverCell.y * cellY;
     if (!isRectVisible(x, y, cellX, cellY, canvas.width, canvas.height)) return;
 
-    ctx.fillStyle = tool === 'erase' ? 'rgba(20,20,20,0.10)' : 'rgba(255,255,255,0.28)';
-    ctx.strokeStyle = tool === 'erase' ? 'rgba(20,20,20,0.72)' : 'rgba(255,255,255,0.92)';
+    ctx.fillStyle = hoverPreviewTool === 'erase' ? 'rgba(20,20,20,0.10)' : 'rgba(255,255,255,0.28)';
+    ctx.strokeStyle = hoverPreviewTool === 'erase' ? 'rgba(20,20,20,0.72)' : 'rgba(255,255,255,0.92)';
     ctx.lineWidth = Math.max(1, Math.min(3, Math.round(Math.min(cellX, cellY) * 0.12)));
     ctx.fillRect(x + 1, y + 1, Math.max(1, cellX - 2), Math.max(1, cellY - 2));
     ctx.strokeRect(x + 1, y + 1, Math.max(1, cellX - 2), Math.max(1, cellY - 2));
@@ -828,9 +840,11 @@ if (typeof document !== 'undefined') (() => {
   function updateHoverCell(e) {
     const point = canvasPoint(e);
     const nextHoverCell = isGridPointInside(point, size) ? point : null;
-    if (sameGridPoint(hoverCell, nextHoverCell)) return;
+    const nextHoverPreviewTool = effectivePaintTool(tool, e.altKey);
+    if (sameGridPoint(hoverCell, nextHoverCell) && hoverPreviewTool === nextHoverPreviewTool) return;
 
     hoverCell = nextHoverCell;
+    hoverPreviewTool = nextHoverPreviewTool;
     requestDraw();
   }
 
@@ -899,7 +913,7 @@ if (typeof document !== 'undefined') (() => {
     clearTimeout(feedbackTimer);
     feedbackTimer = setTimeout(() => {
       controls.feedback.classList.remove('visible');
-    }, 900);
+    }, feedbackDuration(message));
   }
 
   function setControlsCollapsed(collapsed) {
@@ -1225,8 +1239,9 @@ if (typeof document !== 'undefined') (() => {
     lastPaintIndex = -1;
     lastPaintPoint = null;
     if (tapCandidate?.pointerId === e.pointerId) {
-      lastTapTime = tapCandidate.time;
-      lastTapPoint = tapCandidate.point;
+      const tapMemory = tapMemoryFromPointerUp(tapCandidate, e.timeStamp || Date.now(), toCanvasPoint(e));
+      lastTapTime = tapMemory.time;
+      lastTapPoint = tapMemory.point;
       tapCandidate = null;
     }
     if (wasDrawing) {

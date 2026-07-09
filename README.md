@@ -18,7 +18,7 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 - **Invert**: flip the current probability grid so empty areas become alive and live areas become empty
 - **Clear**: reset the grid
 - **One finger drag**: paint or erase cells; fast drags fill the gaps between cells, stroke feedback reports how many cells changed, desktop mouse users get a crosshair cursor and filled cell preview before painting, erase/pan modes change the cursor, and the active paint/erase button is visually marked
-- **Alt-drag**: temporarily flip paint and erase for quick corrections without changing the selected tool
+- **Alt-drag**: temporarily flip paint and erase for quick corrections without changing the selected tool; the desktop hover preview also flips so you can see the temporary tool before drawing
 - **Two finger pinch / drag**: zoom and pan around the grid
 - **Double-click / double-tap / `Home` / `0` key**: reset the view quickly from the grid or keyboard
 - **Shift-drag / middle-drag / right-drag**: pan the grid with a mouse or trackpad without painting
@@ -32,7 +32,7 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 - **Colour hue / saturation**: tune the colour used for live cells
 - **Disco mode**: cycle cells through the seven rainbow colours, changing each generation
 - **Speed**: generations per second
-- **Tool**: shows whether drag will paint or erase cells; reselecting the active tool is ignored to avoid noisy duplicate feedback, and play, pause with generation context, random, clear, invert, pattern load, reset-view, painting, erasing, manual stepping, and zoom changes also show a brief feedback pill over the grid
+- **Tool**: shows whether drag will paint or erase cells; reselecting the active tool is ignored to avoid noisy duplicate feedback, and play, pause with generation context, random, clear, invert, pattern load, reset-view, painting, erasing, manual stepping, and zoom changes also show a brief feedback pill over the grid, with longer messages staying visible a little longer
 - **Running state**: adds a subtle colour wash over the grid so play feels alive without adding visual clutter
 - **Avg probability**: shows the average live probability across the grid
 - **Live count**: shows how many cells currently have at least 50% live probability

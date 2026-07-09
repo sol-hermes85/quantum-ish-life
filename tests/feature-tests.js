@@ -506,6 +506,16 @@ test('double-click or double-tap on the grid can reset the view', () => {
   assert.strictEqual(sandbox.window.__testResetTap(100, { x: 20, y: 20 }, 300, { x: 80, y: 20 }), false);
 });
 
+test('tap reset memory uses pointer-up timing and location', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testTapMemory = tapMemoryFromPointerUp;`, sandbox);
+
+  const memory = sandbox.window.__testTapMemory({ time: 100, point: { x: 10, y: 10 } }, 260, { x: 14, y: 12 });
+  assert.deepStrictEqual({ ...memory, point: { ...memory.point } }, { time: 260, point: { x: 14, y: 12 } });
+  assert.match(js, /tapMemoryFromPointerUp\(tapCandidate, e\.timeStamp \|\| Date\.now\(\), toCanvasPoint\(e\)\)/);
+});
+
 test('no-op zoom input is ignored at zoom limits', () => {
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
@@ -619,6 +629,14 @@ test('alt-drag temporarily flips the active paint tool', () => {
   assert.match(js, /const paintTool = effectivePaintTool\(tool, e\.altKey\);/);
 });
 
+test('desktop hover preview follows the temporary alt paint tool', () => {
+  assert.match(html, /Alt-drag temporarily flips paint and erase/);
+  assert.match(js, /let hoverPreviewTool = 'paint';/);
+  assert.match(js, /const nextHoverPreviewTool = effectivePaintTool\(tool, e\.altKey\);/);
+  assert.match(js, /hoverPreviewTool = nextHoverPreviewTool;/);
+  assert.match(js, /hoverPreviewTool === 'erase'/);
+});
+
 test('fast drag painting interpolates grid cells so strokes do not leave gaps', () => {
   assert.match(html, /Fast drags fill the gaps between cells/);
   const sandbox = { window: {}, console };
@@ -652,7 +670,7 @@ test('desktop mouse hover previews the cell that will be painted', () => {
 });
 
 test('hover preview fills the target cell so the paint target is easier to see', () => {
-  assert.match(js, /ctx\.fillStyle = tool === 'erase'/);
+  assert.match(js, /ctx\.fillStyle = hoverPreviewTool === 'erase'/);
   assert.match(js, /rgba\(255,255,255,0\.28\)/);
 });
 
@@ -664,7 +682,7 @@ test('hover preview avoids redraws while the mouse remains in the same cell', ()
   assert.strictEqual(sandbox.window.__testSameGridPoint({ x: 2, y: 3 }, { x: 2, y: 3 }), true);
   assert.strictEqual(sandbox.window.__testSameGridPoint({ x: 2, y: 3 }, { x: 3, y: 3 }), false);
   assert.strictEqual(sandbox.window.__testSameGridPoint(null, { x: 2, y: 3 }), false);
-  assert.match(js, /if \(sameGridPoint\(hoverCell, nextHoverCell\)\) return;/);
+  assert.match(js, /if \(sameGridPoint\(hoverCell, nextHoverCell\) && hoverPreviewTool === nextHoverPreviewTool\) return;/);
 });
 
 test('hover preview skips cells outside the visible canvas', () => {
@@ -697,6 +715,17 @@ test('mode changes can show brief feedback over the grid', () => {
   assert.match(js, /showFeedback\(running \? 'Running' : pauseFeedbackLabel\(generation\)\)/);
   assert.match(js, /showFeedback\('View reset'\)/);
   assert.match(js, /showFeedback\(t === 'paint' \? 'Paint mode' : 'Erase mode'\)/);
+});
+
+test('longer feedback messages stay visible briefly longer', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testFeedbackDuration = feedbackDuration;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testFeedbackDuration('Running'), 900);
+  assert.strictEqual(sandbox.window.__testFeedbackDuration('Painted 25 cells'), 900);
+  assert.strictEqual(sandbox.window.__testFeedbackDuration('Pentadecathlon loaded'), 1300);
+  assert.match(js, /setTimeout\(\(\) => \{[\s\S]*\}, feedbackDuration\(message\)\);/);
 });
 
 test('pause feedback includes the generation reached', () => {
