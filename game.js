@@ -169,6 +169,12 @@ function shouldDrawGuideGrid(cellWidth, cellHeight) {
   return Math.min(cellWidth, cellHeight) >= 6;
 }
 
+function guideGridOpacity(cellWidth, cellHeight) {
+  const cellSize = Math.min(cellWidth, cellHeight);
+  if (!shouldDrawGuideGrid(cellWidth, cellHeight)) return 0;
+  return Math.min(0.22, Math.max(0.10, Math.round((0.08 + cellSize / 120) * 100) / 100));
+}
+
 function isRectVisible(x, y, width, height, viewportWidth, viewportHeight) {
   return x < viewportWidth && y < viewportHeight && x + width > 0 && y + height > 0;
 }
@@ -200,6 +206,7 @@ function keyboardShortcutAction(key) {
     d: 'toggle-disco',
     r: 'randomise',
     s: 'step',
+    home: 'reset-view',
     z: 'reset-view',
     0: 'reset-view'
   };
@@ -226,6 +233,10 @@ function shouldAutoCollapseControlsOnPlay(running, viewportWidth, controlsCollap
 
 function shouldPauseWhenHidden(running, visibilityState) {
   return running && visibilityState === 'hidden';
+}
+
+function shouldRedrawForControlInput(key, discoMode) {
+  return !(discoMode && (key === 'hue' || key === 'saturation'));
 }
 
 function shouldResetViewTap(previousTime, previousPoint, currentTime, currentPoint) {
@@ -742,7 +753,7 @@ if (typeof document !== 'undefined') (() => {
     const startX = panX;
     const startY = panY;
 
-    ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+    ctx.strokeStyle = `rgba(0,0,0,${guideGridOpacity(cellX, cellY)})`;
     ctx.lineWidth = 1;
 
     const visibleX = visibleGridLineRange(startX, cellX, size, canvas.width);
@@ -1095,7 +1106,7 @@ if (typeof document !== 'undefined') (() => {
       }
       if (key === 'hue' || key === 'saturation') colourDirty = true;
       updateLabels();
-      requestDraw();
+      if (shouldRedrawForControlInput(key, controls.discoMode.checked)) requestDraw();
     });
   }
 

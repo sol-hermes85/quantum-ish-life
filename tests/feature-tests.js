@@ -182,10 +182,14 @@ test('random density and guide grid optimisation helpers exist', () => {
 
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
-  vm.runInContext(`${js}\nwindow.__testGuide = shouldDrawGuideGrid; window.__testVisibleLines = visibleGridLineRange;`, sandbox);
+  vm.runInContext(`${js}\nwindow.__testGuide = shouldDrawGuideGrid; window.__testGuideOpacity = guideGridOpacity; window.__testVisibleLines = visibleGridLineRange;`, sandbox);
 
   assert.strictEqual(sandbox.window.__testGuide(6, 6), true);
   assert.strictEqual(sandbox.window.__testGuide(5.99, 6), false);
+  assert.strictEqual(sandbox.window.__testGuideOpacity(5, 5), 0);
+  assert.strictEqual(sandbox.window.__testGuideOpacity(6, 6), 0.13);
+  assert.strictEqual(sandbox.window.__testGuideOpacity(24, 24), 0.22);
+  assert.match(README, /keeps the fine guide grid subtle as cells get larger/);
   assert.deepStrictEqual({ ...sandbox.window.__testVisibleLines(-120, 20, 50, 300) }, { first: 6, last: 21 });
   assert.deepStrictEqual({ ...sandbox.window.__testVisibleLines(0, 0, 50, 300) }, { first: 0, last: 0 });
 });
@@ -236,7 +240,7 @@ test('keyboard shortcuts expose common actions', () => {
   assert.match(html, /E paint\/erase/);
   assert.match(html, /1 paint, 2 erase/);
   assert.match(html, /H hide\/show controls/);
-  assert.match(html, /Z\/0 reset view/);
+  assert.match(html, /Z\/Home\/0 reset view/);
   assert.match(html, /\+\/− zoom/);
 
   const sandbox = { window: {}, console };
@@ -254,6 +258,7 @@ test('keyboard shortcuts expose common actions', () => {
   assert.strictEqual(sandbox.window.__testShortcut('i'), 'invert');
   assert.strictEqual(sandbox.window.__testShortcut('d'), 'toggle-disco');
   assert.strictEqual(sandbox.window.__testShortcut('H'), 'toggle-controls');
+  assert.strictEqual(sandbox.window.__testShortcut('Home'), 'reset-view');
   assert.strictEqual(sandbox.window.__testShortcut('z'), 'reset-view');
   assert.strictEqual(sandbox.window.__testShortcut('0'), 'reset-view');
   assert.strictEqual(sandbox.window.__testShortcut('+'), 'zoom-in');
@@ -479,6 +484,7 @@ test('running state adds a subtle grid colour wash', () => {
 test('double-click or double-tap on the grid can reset the view', () => {
   assert.match(html, /Double-click or double-tap resets the view/);
   assert.match(html, /Double-tap the grid to reset the view/);
+  assert.match(html, /Home\/0 from the keyboard/);
   assert.match(js, /function shouldResetViewTap/);
   assert.match(js, /resetView\(\);/);
 
@@ -852,6 +858,19 @@ test('drawing avoids repeated hue conversion and lets disco mode own the palette
   assert.match(js, /if \(!discoMode && colourDirty\)/);
   assert.match(js, /const liveColour = discoMode[\s\S]*\? null[\s\S]*: selectedLiveColour/);
   assert.match(js, /if \(key === 'hue' \|\| key === 'saturation'\) colourDirty = true;/);
+});
+
+test('hidden colour slider changes avoid redraws while disco mode owns the palette', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testShouldRedrawForControlInput = shouldRedrawForControlInput;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testShouldRedrawForControlInput('hue', true), false);
+  assert.strictEqual(sandbox.window.__testShouldRedrawForControlInput('saturation', true), false);
+  assert.strictEqual(sandbox.window.__testShouldRedrawForControlInput('hue', false), true);
+  assert.strictEqual(sandbox.window.__testShouldRedrawForControlInput('speed', true), true);
+  assert.match(js, /if \(shouldRedrawForControlInput\(key, controls\.discoMode\.checked\)\) requestDraw\(\);/);
+  assert.match(README, /avoids redraws for hidden colour changes while disco mode owns the palette/);
 });
 
 test('certain collapsed probabilities avoid random number work', () => {
