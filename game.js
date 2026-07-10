@@ -19,6 +19,10 @@ function rulePresetValues(name) {
   return RULE_PRESETS[name] || null;
 }
 
+function shouldBirthForRule(ruleName, neighbourCount) {
+  return neighbourCount === 3 || (ruleName === 'highlife' && neighbourCount === 6);
+}
+
 function displayRulePresetName(value) {
   const names = {
     '': 'custom',
@@ -52,9 +56,19 @@ function nextPinchZoomLevel(current, startDistance, currentDistance) {
   return clampZoomLevel(next);
 }
 
+function baseGridRect(canvasWidth, canvasHeight) {
+  const size = Math.min(canvasWidth, canvasHeight);
+  return {
+    x: (canvasWidth - size) / 2,
+    y: (canvasHeight - size) / 2,
+    size
+  };
+}
+
 function clampView(zoom, panX, panY, canvasWidth, canvasHeight) {
-  const scaledWidth = canvasWidth * zoom;
-  const scaledHeight = canvasHeight * zoom;
+  const base = baseGridRect(canvasWidth, canvasHeight);
+  const scaledWidth = base.size * zoom;
+  const scaledHeight = base.size * zoom;
   const clampedX = scaledWidth <= canvasWidth
     ? (canvasWidth - scaledWidth) / 2
     : Math.max(canvasWidth - scaledWidth, Math.min(0, panX));
@@ -70,10 +84,11 @@ function clampView(zoom, panX, panY, canvasWidth, canvasHeight) {
 }
 
 function zoomViewAtPoint(currentZoom, nextZoom, panX, panY, anchorX, anchorY, canvasWidth, canvasHeight) {
-  const relativeX = (anchorX - panX) / (canvasWidth * currentZoom);
-  const relativeY = (anchorY - panY) / (canvasHeight * currentZoom);
-  const nextPanX = anchorX - relativeX * canvasWidth * nextZoom;
-  const nextPanY = anchorY - relativeY * canvasHeight * nextZoom;
+  const side = baseGridRect(canvasWidth, canvasHeight).size;
+  const relativeX = (anchorX - panX) / (side * currentZoom);
+  const relativeY = (anchorY - panY) / (side * currentZoom);
+  const nextPanX = anchorX - relativeX * side * nextZoom;
+  const nextPanY = anchorY - relativeY * side * nextZoom;
   return clampView(nextZoom, nextPanX, nextPanY, canvasWidth, canvasHeight);
 }
 
@@ -100,9 +115,10 @@ function shouldChangeTool(currentTool, nextTool) {
 }
 
 function screenToGridPoint(screenX, screenY, size, canvasWidth, canvasHeight, zoom, panX, panY) {
+  const side = baseGridRect(canvasWidth, canvasHeight).size;
   return {
-    x: Math.floor(((screenX - panX) / (canvasWidth * zoom)) * size),
-    y: Math.floor(((screenY - panY) / (canvasHeight * zoom)) * size)
+    x: Math.floor(((screenX - panX) / (side * zoom)) * size),
+    y: Math.floor(((screenY - panY) / (side * zoom)) * size)
   };
 }
 
@@ -114,13 +130,43 @@ function sameGridPoint(a, b) {
   return Boolean(a && b && a.x === b.x && a.y === b.y);
 }
 
-function shouldUpdateCell(currentProbability, tool) {
-  return tool === 'erase' ? currentProbability !== 0 : currentProbability !== 1;
+function brushFootprint(point, mode, size) {
+  if (mode !== 'bloom') return [{ x: point.x, y: point.y, strength: 1 }];
+
+  const cells = [];
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      const x = point.x + dx;
+      const y = point.y + dy;
+      if (x < 0 || x >= size || y < 0 || y >= size) continue;
+      const strength = dx === 0 && dy === 0 ? 1 : (dx === 0 || dy === 0 ? 0.6 : 0.35);
+      cells.push({ x, y, strength });
+    }
+  }
+  return cells;
+}
+
+function applyBrushProbability(currentProbability, tool, strength) {
+  const current = Math.max(0, Math.min(1, currentProbability));
+  const amount = Math.max(0, Math.min(1, strength));
+  const next = tool === 'erase'
+    ? current * (1 - amount)
+    : current + (1 - current) * amount;
+  return Math.round(next * 1000) / 1000;
+}
+
+function applyStrongestBrushProbability(originalProbability, currentProbability, tool, previousStrength, nextStrength) {
+  if (nextStrength <= previousStrength) return currentProbability;
+  return applyBrushProbability(originalProbability, tool, nextStrength);
 }
 
 function effectivePaintTool(selectedTool, altKey) {
   if (!altKey) return selectedTool;
   return selectedTool === 'erase' ? 'paint' : 'erase';
+}
+
+function shouldResetStrokeStrengths(previousTool, nextTool) {
+  return previousTool !== nextTool;
 }
 
 function interpolatedGridPoints(from, to) {
@@ -260,6 +306,7 @@ function shouldPauseWhenHidden(running, visibilityState) {
 }
 
 function shouldRedrawForControlInput(key, discoMode) {
+  if (!['hue', 'saturation', 'discoMode', 'timeEcho'].includes(key)) return false;
   return !(discoMode && (key === 'hue' || key === 'saturation'));
 }
 
@@ -450,6 +497,16 @@ function gridPixelColour(probability, cellIndex, generation, discoMode, selected
   return blendLiveCellColour(probability, liveColour, discoMode);
 }
 
+function updateEchoTrail(echoValues, sourceValues, decay = 0.72) {
+  for (let i = 0; i < echoValues.length; i++) {
+    echoValues[i] = Math.max(sourceValues[i], echoValues[i] * decay);
+  }
+}
+
+function echoDisplayProbability(currentProbability, echoProbability) {
+  return Math.max(currentProbability, Math.round(echoProbability * 0.32 * 1000) / 1000);
+}
+
 function populationPercent(liveCount, totalCells) {
   if (totalCells <= 0) return '0.0%';
   return `${((liveCount / totalCells) * 100).toFixed(1)}%`;
@@ -457,7 +514,7 @@ function populationPercent(liveCount, totalCells) {
 
 function paintStrokeFeedback(tool, changedCount) {
   if (changedCount <= 0) return '';
-  const verb = tool === 'erase' ? 'Erased' : 'Painted';
+  const verb = tool === 'mixed' ? 'Changed' : (tool === 'erase' ? 'Erased' : 'Painted');
   const noun = changedCount === 1 ? 'cell' : 'cells';
   return `${verb} ${changedCount} ${noun}`;
 }
@@ -483,6 +540,10 @@ function collapseProbability(probability) {
   if (probability <= 0) return 0;
   if (probability >= 1) return 1;
   return Math.random() < probability ? 1 : 0;
+}
+
+function shouldRebuildPixelBuffer(pixelBufferDirty) {
+  return pixelBufferDirty === true;
 }
 
 function primeImageAlpha(imageData) {
@@ -514,11 +575,13 @@ if (typeof document !== 'undefined') (() => {
     gridSize: $('gridSize'),
     ageLimit: $('ageLimit'),
     density: $('density'),
+    brushMode: $('brushMode'),
     patternPreset: $('patternPreset'),
     rulePreset: $('rulePreset'),
     hue: $('hue'),
     saturation: $('saturation'),
     discoMode: $('discoMode'),
+    timeEcho: $('timeEcho'),
     speed: $('speed'),
     under: $('under'),
     survive: $('survive'),
@@ -539,11 +602,13 @@ if (typeof document !== 'undefined') (() => {
     gridSize: $('gridSizeValue'),
     ageLimit: $('ageLimitValue'),
     density: $('densityValue'),
+    brushMode: $('brushModeValue'),
     patternPreset: $('patternPresetValue'),
     rulePreset: $('rulePresetValue'),
     hue: $('hueValue'),
     saturation: $('saturationValue'),
     discoMode: $('discoModeValue'),
+    timeEcho: $('timeEchoValue'),
     speed: $('speedValue'),
     under: $('underValue'),
     survive: $('surviveValue'),
@@ -554,6 +619,7 @@ if (typeof document !== 'undefined') (() => {
 
   let size = Number(controls.gridSize.value);
   let grid = new Float32Array(size * size);
+  let echo = new Float32Array(size * size);
   let next = new Float32Array(size * size);
   let collapsed = new Uint8Array(size * size);
   let ages = new Uint16Array(size * size);
@@ -564,13 +630,15 @@ if (typeof document !== 'undefined') (() => {
   let lastTick = 0;
   let isDrawing = false;
   let isPanning = false;
-  let lastPaintIndex = -1;
+  let strokePaintStates = new Map();
+  let strokeChangedIndices = new Set();
+  let strokeStrengthTool = 'paint';
   let lastPaintPoint = null;
-  let strokeChangedCount = 0;
   let strokeFeedbackTool = 'paint';
   let lastPanPoint = { x: 0, y: 0 };
   let tool = 'paint';
   let drawQueued = false;
+  let pixelBufferDirty = true;
   let zoom = 1;
   let panX = 0;
   let panY = 0;
@@ -599,6 +667,7 @@ if (typeof document !== 'undefined') (() => {
   function resizeBuffers(newSize) {
     size = newSize;
     grid = new Float32Array(size * size);
+    echo = new Float32Array(size * size);
     next = new Float32Array(size * size);
     collapsed = new Uint8Array(size * size);
     ages = new Uint16Array(size * size);
@@ -635,6 +704,7 @@ if (typeof document !== 'undefined') (() => {
 
   function seedVisiblePattern() {
     grid.fill(0);
+    echo.fill(0);
     ages.fill(0);
     const mid = Math.floor(size / 2);
     const innerRadiusSquared = (size * 0.18) ** 2;
@@ -662,7 +732,7 @@ if (typeof document !== 'undefined') (() => {
 
     generation = 0;
     lastLiveCount = null;
-    requestDraw();
+    requestGridDraw();
   }
 
   function resetPatternSelection() {
@@ -674,6 +744,7 @@ if (typeof document !== 'undefined') (() => {
   function randomise({ keepPreset = false } = {}) {
     if (!keepPreset) resetPatternSelection();
     grid.fill(0);
+    echo.fill(0);
     ages.fill(0);
 
     const density = Number(controls.density.value);
@@ -685,7 +756,7 @@ if (typeof document !== 'undefined') (() => {
     generation = 0;
     lastLiveCount = null;
     if (!keepPreset) showFeedback('Randomised');
-    requestDraw();
+    requestGridDraw();
   }
 
   function collapse() {
@@ -718,17 +789,18 @@ if (typeof document !== 'undefined') (() => {
         } else if (alive && n < 2) p = under;
         else if (alive && (n === 2 || n === 3)) p = survive;
         else if (alive && n > 3) p = over;
-        else if (!alive && n === 3) p = birth;
+        else if (!alive && shouldBirthForRule(controls.rulePreset.value, n)) p = birth;
 
         next[i] = clamp(p);
         nextAges[i] = nextCellAge(alive, ages[i], p);
       }
     }
 
+    if (controls.timeEcho.checked) updateEchoTrail(echo, grid);
     [grid, next] = [next, grid];
     [ages, nextAges] = [nextAges, ages];
     generation++;
-    requestDraw();
+    requestGridDraw();
   }
 
   function requestDraw() {
@@ -737,9 +809,12 @@ if (typeof document !== 'undefined') (() => {
     requestAnimationFrame(draw);
   }
 
-  function draw() {
-    drawQueued = false;
+  function requestGridDraw() {
+    pixelBufferDirty = true;
+    requestDraw();
+  }
 
+  function rebuildPixelBuffer() {
     const pixels = image.data;
     let total = 0;
     let liveCount = 0;
@@ -749,13 +824,12 @@ if (typeof document !== 'undefined') (() => {
       selectedLiveColour = hslToRgb(Number(controls.hue.value), Number(controls.saturation.value) / 100, 0.45);
       colourDirty = false;
     }
-    const liveColour = discoMode
-      ? null
-      : selectedLiveColour;
+    const liveColour = discoMode ? null : selectedLiveColour;
 
     for (let i = 0; i < grid.length; i++) {
       const p = grid[i];
-      const colour = gridPixelColour(p, i, generation, discoMode, liveColour);
+      const displayProbability = controls.timeEcho.checked ? echoDisplayProbability(p, echo[i]) : p;
+      const colour = gridPixelColour(displayProbability, i, generation, discoMode, liveColour);
       const o = i * 4;
 
       total += p;
@@ -766,17 +840,6 @@ if (typeof document !== 'undefined') (() => {
     }
 
     bufferCtx.putImageData(image, 0, 0);
-
-    ctx.imageSmoothingEnabled = false;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    const drawWidth = canvas.width * zoom;
-    const drawHeight = canvas.height * zoom;
-
-    ctx.drawImage(bufferCanvas, panX, panY, drawWidth, drawHeight);
-    drawGuideGrid();
-    drawHoverPreview();
-
     setTextIfChanged(labels.generation, String(generation));
     setTextIfChanged(labels.average, (total / grid.length).toFixed(3));
     setTextIfChanged(labels.liveCount, String(liveCount));
@@ -784,11 +847,26 @@ if (typeof document !== 'undefined') (() => {
     const trend = populationTrendLabel(lastLiveCount, liveCount);
     setTextIfChanged(labels.populationTrend, trend);
     setPopulationTrendClass(labels.populationTrend, trend);
+    lastLiveCount = liveCount;
+    pixelBufferDirty = false;
+  }
+
+  function draw() {
+    drawQueued = false;
+    if (shouldRebuildPixelBuffer(pixelBufferDirty)) rebuildPixelBuffer();
+
+    ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const drawSize = baseGridRect(canvas.width, canvas.height).size * zoom;
+    ctx.drawImage(bufferCanvas, panX, panY, drawSize, drawSize);
+    drawGuideGrid();
+    drawHoverPreview();
+
     setTextIfChanged(labels.zoomLevel, zoomPercentLabel(zoom));
     setTextIfChanged(labels.runStatus, running ? 'Running' : 'Paused');
     updateZoomControlState();
     setDocumentTitleIfChanged(document, pageTitleForState(running, generation));
-    lastLiveCount = liveCount;
     if (labelsDirty) updateLabels();
   }
 
@@ -798,8 +876,9 @@ if (typeof document !== 'undefined') (() => {
   }
 
   function drawGuideGrid() {
-    const cellX = (canvas.width * zoom) / size;
-    const cellY = (canvas.height * zoom) / size;
+    const drawSize = baseGridRect(canvas.width, canvas.height).size * zoom;
+    const cellX = drawSize / size;
+    const cellY = drawSize / size;
     if (!shouldDrawGuideGrid(cellX, cellY)) return;
 
     const startX = panX;
@@ -815,7 +894,7 @@ if (typeof document !== 'undefined') (() => {
     for (let i = visibleX.first; i <= visibleX.last; i++) {
       const x = Math.round(startX + i * cellX) + 0.5;
       ctx.moveTo(x, Math.max(0, startY));
-      ctx.lineTo(x, Math.min(canvas.height, startY + canvas.height * zoom));
+      ctx.lineTo(x, Math.min(canvas.height, startY + drawSize));
     }
     ctx.stroke();
 
@@ -823,7 +902,7 @@ if (typeof document !== 'undefined') (() => {
     for (let i = visibleY.first; i <= visibleY.last; i++) {
       const y = Math.round(startY + i * cellY) + 0.5;
       ctx.moveTo(Math.max(0, startX), y);
-      ctx.lineTo(Math.min(canvas.width, startX + canvas.width * zoom), y);
+      ctx.lineTo(Math.min(canvas.width, startX + drawSize), y);
     }
     ctx.stroke();
   }
@@ -831,30 +910,37 @@ if (typeof document !== 'undefined') (() => {
   function drawHoverPreview() {
     if (!hoverCell) return;
 
-    const cellX = (canvas.width * zoom) / size;
-    const cellY = (canvas.height * zoom) / size;
+    const drawSize = baseGridRect(canvas.width, canvas.height).size * zoom;
+    const cellX = drawSize / size;
+    const cellY = drawSize / size;
     if (Math.min(cellX, cellY) < 4) return;
-
-    const x = panX + hoverCell.x * cellX;
-    const y = panY + hoverCell.y * cellY;
-    if (!isRectVisible(x, y, cellX, cellY, canvas.width, canvas.height)) return;
 
     ctx.fillStyle = hoverPreviewTool === 'erase' ? 'rgba(20,20,20,0.10)' : 'rgba(255,255,255,0.28)';
     ctx.strokeStyle = hoverPreviewTool === 'erase' ? 'rgba(20,20,20,0.72)' : 'rgba(255,255,255,0.92)';
     ctx.lineWidth = Math.max(1, Math.min(3, Math.round(Math.min(cellX, cellY) * 0.12)));
-    ctx.fillRect(x + 1, y + 1, Math.max(1, cellX - 2), Math.max(1, cellY - 2));
-    ctx.strokeRect(x + 1, y + 1, Math.max(1, cellX - 2), Math.max(1, cellY - 2));
+
+    for (const preview of brushFootprint(hoverCell, controls.brushMode.value, size)) {
+      const x = panX + preview.x * cellX;
+      const y = panY + preview.y * cellY;
+      if (!isRectVisible(x, y, cellX, cellY, canvas.width, canvas.height)) continue;
+      ctx.globalAlpha = Math.max(0.3, preview.strength);
+      ctx.fillRect(x + 1, y + 1, Math.max(1, cellX - 2), Math.max(1, cellY - 2));
+      ctx.strokeRect(x + 1, y + 1, Math.max(1, cellX - 2), Math.max(1, cellY - 2));
+    }
+    ctx.globalAlpha = 1;
   }
 
   function updateLabels() {
     setTextIfChanged(labels.gridSize, `${size} × ${size}`);
     setTextIfChanged(labels.ageLimit, controls.ageLimit.value === '0' ? 'never' : `${controls.ageLimit.value} gen`);
     setTextIfChanged(labels.density, `${Math.round(Number(controls.density.value) * 100)}%`);
+    setTextIfChanged(labels.brushMode, controls.brushMode.value === 'bloom' ? 'Bloom' : 'Dot');
     setTextIfChanged(labels.patternPreset, patternPresetLabel(controls.patternPreset.value, size));
     setTextIfChanged(labels.rulePreset, displayRulePresetName(controls.rulePreset.value));
     setTextIfChanged(labels.hue, `${controls.hue.value}°`);
     setTextIfChanged(labels.saturation, `${controls.saturation.value}%`);
     setTextIfChanged(labels.discoMode, controls.discoMode.checked ? 'on' : 'off');
+    setTextIfChanged(labels.timeEcho, controls.timeEcho.checked ? 'on' : 'off');
     setTextIfChanged(labels.speed, `${controls.speed.value} gen/s`);
 
     for (const key of ['under', 'survive', 'over', 'birth', 'noise']) {
@@ -882,17 +968,25 @@ if (typeof document !== 'undefined') (() => {
     requestDraw();
   }
 
-  function paintPoint(point, paintTool) {
+  function paintPoint(point, paintTool, strength = 1) {
     if (!isGridPointInside(point, size)) return false;
 
     const i = idx(point.x, point.y);
-    if (i === lastPaintIndex) return false;
-    if (!shouldUpdateCell(grid[i], paintTool)) return false;
+    const state = strokePaintStates.get(i) || { originalProbability: grid[i], strength: 0 };
+    if (strength <= state.strength) return false;
+    const nextProbability = applyStrongestBrushProbability(
+      state.originalProbability,
+      grid[i],
+      paintTool,
+      state.strength,
+      strength
+    );
+    strokePaintStates.set(i, { originalProbability: state.originalProbability, strength });
+    if (nextProbability === grid[i]) return false;
 
-    grid[i] = paintTool === 'erase' ? 0 : 1;
-    ages[i] = paintTool === 'erase' ? 0 : 1;
-    lastPaintIndex = i;
-    strokeChangedCount++;
+    grid[i] = nextProbability;
+    ages[i] = nextProbability > 0 ? Math.max(1, ages[i]) : 0;
+    strokeChangedIndices.add(i);
     return true;
   }
 
@@ -901,13 +995,20 @@ if (typeof document !== 'undefined') (() => {
     if (!isGridPointInside(p, size)) return;
 
     const paintTool = effectivePaintTool(tool, e.altKey);
+    if (shouldResetStrokeStrengths(strokeStrengthTool, paintTool)) {
+      strokePaintStates = new Map();
+      strokeStrengthTool = paintTool;
+      strokeFeedbackTool = 'mixed';
+    }
     let changed = false;
-    for (const point of interpolatedGridPoints(lastPaintPoint, p)) {
-      changed = paintPoint(point, paintTool) || changed;
+    for (const centre of interpolatedGridPoints(lastPaintPoint, p)) {
+      for (const point of brushFootprint(centre, controls.brushMode.value, size)) {
+        changed = paintPoint(point, paintTool, point.strength) || changed;
+      }
     }
 
     lastPaintPoint = p;
-    if (changed) requestDraw();
+    if (changed) requestGridDraw();
   }
 
   function panFromPointer(e) {
@@ -1008,26 +1109,28 @@ if (typeof document !== 'undefined') (() => {
   function clearGrid() {
     resetPatternSelection();
     grid.fill(0);
+    echo.fill(0);
     ages.fill(0);
     generation = 0;
     lastLiveCount = null;
     showFeedback('Grid cleared');
-    requestDraw();
+    requestGridDraw();
   }
 
   function invertGrid() {
     resetPatternSelection();
     invertProbabilityGrid(grid, ages);
+    echo.fill(0);
     generation = 0;
     lastLiveCount = null;
     showFeedback('Grid inverted');
-    requestDraw();
+    requestGridDraw();
   }
 
   function toggleDiscoMode() {
     controls.discoMode.checked = !controls.discoMode.checked;
     updateLabels();
-    requestDraw();
+    requestGridDraw();
   }
 
   function applyPattern(pattern) {
@@ -1041,6 +1144,7 @@ if (typeof document !== 'undefined') (() => {
     if (!cells.length) return;
 
     grid.fill(0);
+    echo.fill(0);
     ages.fill(0);
     for (const { x, y } of cells) {
       const i = idx(x, y);
@@ -1051,7 +1155,7 @@ if (typeof document !== 'undefined') (() => {
     generation = 0;
     lastLiveCount = null;
     showFeedback(`${displayPresetName(pattern)} loaded`);
-    requestDraw();
+    requestGridDraw();
   }
 
   function applyRulePreset(name) {
@@ -1156,19 +1260,24 @@ if (typeof document !== 'undefined') (() => {
     applyPattern(controls.patternPreset.value);
     updateLabels();
   });
+  controls.brushMode.addEventListener('change', () => {
+    updateLabels();
+    requestDraw();
+  });
   controls.rulePreset.addEventListener('change', () => {
     applyRulePreset(controls.rulePreset.value);
     updateLabels();
   });
 
-  for (const key of ['ageLimit', 'density', 'hue', 'saturation', 'discoMode', 'speed', 'under', 'survive', 'over', 'birth', 'noise']) {
+  for (const key of ['ageLimit', 'density', 'hue', 'saturation', 'discoMode', 'timeEcho', 'speed', 'under', 'survive', 'over', 'birth', 'noise']) {
     controls[key].addEventListener('input', () => {
       if (['under', 'survive', 'over', 'birth', 'noise'].includes(key)) {
         controls.rulePreset.value = '';
       }
       if (key === 'hue' || key === 'saturation') colourDirty = true;
+      if (key === 'timeEcho' && !controls.timeEcho.checked) echo.fill(0);
       updateLabels();
-      if (shouldRedrawForControlInput(key, controls.discoMode.checked)) requestDraw();
+      if (shouldRedrawForControlInput(key, controls.discoMode.checked)) requestGridDraw();
     });
   }
 
@@ -1213,11 +1322,12 @@ if (typeof document !== 'undefined') (() => {
     tapCandidate = { pointerId: e.pointerId, time: tapTime, point: tapPoint };
 
     isDrawing = true;
-    strokeChangedCount = 0;
+    strokeChangedIndices = new Set();
     strokeFeedbackTool = effectivePaintTool(tool, e.altKey);
+    strokeStrengthTool = strokeFeedbackTool;
     hoverCell = null;
     updateShellMode();
-    lastPaintIndex = -1;
+    strokePaintStates = new Map();
     lastPaintPoint = null;
     paint(e);
   }, { passive: false });
@@ -1275,7 +1385,7 @@ if (typeof document !== 'undefined') (() => {
     const wasDrawing = isDrawing;
     isDrawing = false;
     isPanning = false;
-    lastPaintIndex = -1;
+    strokePaintStates = new Map();
     lastPaintPoint = null;
     if (tapCandidate?.pointerId === e.pointerId) {
       const tapMemory = tapMemoryFromPointerUp(tapCandidate, e.timeStamp || Date.now(), toCanvasPoint(e));
@@ -1284,13 +1394,13 @@ if (typeof document !== 'undefined') (() => {
       tapCandidate = null;
     }
     if (wasDrawing) {
-      const message = paintStrokeFeedback(strokeFeedbackTool, strokeChangedCount);
+      const message = paintStrokeFeedback(strokeFeedbackTool, strokeChangedIndices.size);
       if (message) showFeedback(message);
     } else if (completedPinch) {
       showFeedback(`Zoom ${zoomPercentLabel(zoom)}`);
     }
     if (completedPinch) pinchGestureActive = false;
-    strokeChangedCount = 0;
+    strokeChangedIndices = new Set();
     updateShellMode();
     releasePointer(e.pointerId);
   }, { passive: false });
@@ -1299,11 +1409,11 @@ if (typeof document !== 'undefined') (() => {
     activePointers.delete(e.pointerId);
     isDrawing = false;
     isPanning = false;
-    lastPaintIndex = -1;
+    strokePaintStates = new Map();
+    strokeChangedIndices = new Set();
     lastPaintPoint = null;
     if (tapCandidate?.pointerId === e.pointerId) tapCandidate = null;
     if (activePointers.size < 2) pinchGestureActive = false;
-    strokeChangedCount = 0;
     updateShellMode();
     releasePointer(e.pointerId);
   });

@@ -66,6 +66,68 @@ test('disco mode cycles cells through the seven rainbow colours each generation'
   assert.deepStrictEqual({ ...sandbox.window.__testBlend(0.05, generationOne, true) }, { r: 255, g: 255, b: 255 });
 });
 
+test('Time Echo retains and fades recent cell probability', () => {
+  assert.match(html, /id="timeEcho"[^>]*type="checkbox"/);
+  assert.match(html, /id="timeEchoValue"/);
+
+  const sandbox = { window: {}, console, Float32Array };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testUpdateEcho = updateEchoTrail; window.__testEchoProbability = echoDisplayProbability;`, sandbox);
+
+  const echo = new Float32Array([1, 0.5, 0]);
+  const source = new Float32Array([0, 1, 0.5]);
+  sandbox.window.__testUpdateEcho(echo, source, 0.5);
+  assert.deepStrictEqual([...echo], [0.5, 1, 0.5]);
+  assert.strictEqual(sandbox.window.__testEchoProbability(0, 1), 0.32);
+  assert.strictEqual(sandbox.window.__testEchoProbability(0.8, 1), 0.8);
+});
+
+test('probability brush offers dot and bloom footprints', () => {
+  assert.match(html, /id="brushMode"/);
+  assert.match(html, /value="dot"/);
+  assert.match(html, /value="bloom"/);
+
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testBrush = brushFootprint; window.__testBrushProbability = applyBrushProbability;`, sandbox);
+
+  const dot = JSON.parse(JSON.stringify(sandbox.window.__testBrush({ x: 5, y: 5 }, 'dot', 20)));
+  const bloom = JSON.parse(JSON.stringify(sandbox.window.__testBrush({ x: 5, y: 5 }, 'bloom', 20)));
+  assert.deepStrictEqual(dot, [{ x: 5, y: 5, strength: 1 }]);
+  assert.strictEqual(bloom.length, 9);
+  assert.deepStrictEqual(bloom.find(cell => cell.x === 5 && cell.y === 5), { x: 5, y: 5, strength: 1 });
+  assert.strictEqual(sandbox.window.__testBrush({ x: 0, y: 0 }, 'bloom', 20).length, 4);
+  assert.strictEqual(sandbox.window.__testBrushProbability(0, 'paint', 0.6), 0.6);
+  assert.strictEqual(sandbox.window.__testBrushProbability(1, 'erase', 0.6), 0.4);
+});
+
+test('overlapping Bloom strokes promote cells to the strongest footprint', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testStrokeProbability = applyStrongestBrushProbability;`, sandbox);
+
+  const fringePaint = sandbox.window.__testStrokeProbability(0, 0, 'paint', 0, 0.6);
+  const centrePaint = sandbox.window.__testStrokeProbability(0, fringePaint, 'paint', 0.6, 1);
+  assert.strictEqual(fringePaint, 0.6);
+  assert.strictEqual(centrePaint, 1);
+
+  const fringeErase = sandbox.window.__testStrokeProbability(1, 1, 'erase', 0, 0.6);
+  const centreErase = sandbox.window.__testStrokeProbability(1, fringeErase, 'erase', 0.6, 1);
+  assert.strictEqual(fringeErase, 0.4);
+  assert.strictEqual(centreErase, 0);
+  assert.strictEqual(sandbox.window.__testStrokeProbability(1, 1, 'paint', 1, 0.35), 1);
+
+  const uncertainPaintFringe = sandbox.window.__testStrokeProbability(0.001, 0.001, 'paint', 0, 0.35);
+  const uncertainPaintPromoted = sandbox.window.__testStrokeProbability(0.001, uncertainPaintFringe, 'paint', 0.35, 0.6);
+  const uncertainPaintDirect = sandbox.window.__testStrokeProbability(0.001, 0.001, 'paint', 0, 0.6);
+  assert.strictEqual(uncertainPaintPromoted, uncertainPaintDirect);
+
+  const uncertainEraseFringe = sandbox.window.__testStrokeProbability(0.001, 0.001, 'erase', 0, 0.35);
+  const uncertainErasePromoted = sandbox.window.__testStrokeProbability(0.001, uncertainEraseFringe, 'erase', 0.35, 0.6);
+  const uncertainEraseDirect = sandbox.window.__testStrokeProbability(0.001, 0.001, 'erase', 0, 0.6);
+  assert.strictEqual(uncertainErasePromoted, uncertainEraseDirect);
+});
+
 test('view reset, zoom status, and preset pattern controls exist', () => {
   assert.match(html, /id="resetView"/);
   assert.match(html, /id="zoomLevel"/);
@@ -167,6 +229,18 @@ test('rule presets expose useful probability rule sets', () => {
   assert.strictEqual(sandbox.window.__testRulePresetName('highlife'), 'HighLife-ish');
   assert.strictEqual(sandbox.window.__testRulePresetName(''), 'custom');
   assert.strictEqual(sandbox.window.__testRulePreset('missing'), null);
+});
+
+test('HighLife-ish allows births with three or six neighbours', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testShouldBirth = shouldBirthForRule;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testShouldBirth('classic', 3), true);
+  assert.strictEqual(sandbox.window.__testShouldBirth('classic', 6), false);
+  assert.strictEqual(sandbox.window.__testShouldBirth('highlife', 3), true);
+  assert.strictEqual(sandbox.window.__testShouldBirth('highlife', 6), true);
+  assert.strictEqual(sandbox.window.__testShouldBirth('highlife', 5), false);
 });
 
 test('rule preset control explains that presets move related sliders together', () => {
@@ -386,9 +460,37 @@ test('drag paint strokes report how many cells changed', () => {
   assert.strictEqual(sandbox.window.__testPaintFeedback('paint', 1), 'Painted 1 cell');
   assert.strictEqual(sandbox.window.__testPaintFeedback('paint', 3), 'Painted 3 cells');
   assert.strictEqual(sandbox.window.__testPaintFeedback('erase', 2), 'Erased 2 cells');
+  assert.strictEqual(sandbox.window.__testPaintFeedback('mixed', 2), 'Changed 2 cells');
   assert.strictEqual(sandbox.window.__testPaintFeedback('erase', 0), '');
-  assert.match(js, /strokeChangedCount\+\+/);
+  assert.match(js, /strokeChangedIndices\.add\(i\);/);
   assert.match(html, /paint\/erase stroke counts/);
+});
+
+test('camera-only redraws reuse the existing pixel buffer', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testShouldRebuild = shouldRebuildPixelBuffer;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testShouldRebuild(true), true);
+  assert.strictEqual(sandbox.window.__testShouldRebuild(false), false);
+  assert.match(js, /function requestGridDraw\(\)/);
+  assert.match(js, /if \(shouldRebuildPixelBuffer\(pixelBufferDirty\)\) rebuildPixelBuffer\(\);/);
+  assert.match(js, /function panFromPointer[\s\S]*requestDraw\(\);/);
+});
+
+test('mixed Alt strokes reset brush strength and count unique cells', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testResetStrengths = shouldResetStrokeStrengths;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testResetStrengths('paint', 'paint'), false);
+  assert.strictEqual(sandbox.window.__testResetStrengths('paint', 'erase'), true);
+  assert.strictEqual(sandbox.window.__testResetStrengths('erase', 'paint'), true);
+  assert.match(js, /if \(shouldResetStrokeStrengths\(strokeStrengthTool, paintTool\)\) \{[\s\S]*strokePaintStates = new Map\(\);/);
+  assert.match(js, /let strokeChangedIndices = new Set\(\);/);
+  assert.match(js, /strokeChangedIndices\.add\(i\);/);
+  assert.match(js, /paintStrokeFeedback\(strokeFeedbackTool, strokeChangedIndices\.size\)/);
+  assert.doesNotMatch(js, /strokeChangedCount/);
 });
 
 test('stat labels avoid duplicate DOM writes', () => {
@@ -435,6 +537,17 @@ test('cells older than the configured limit are forced to die', () => {
   assert.strictEqual(sandbox.window.__testNextAge(false, 0, 0.75), 1);
   assert.strictEqual(sandbox.window.__testNextAge(true, 4, 0.75), 5);
   assert.strictEqual(sandbox.window.__testNextAge(true, 4, 0), 0);
+});
+
+test('square grid stays centred with square cells on non-square screens', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testGridRect = baseGridRect; window.__testClampView = clampView; window.__testMap = screenToGridPoint;`, sandbox);
+
+  assert.deepStrictEqual({ ...sandbox.window.__testGridRect(1200, 800) }, { x: 200, y: 0, size: 800 });
+  assert.deepStrictEqual({ ...sandbox.window.__testGridRect(600, 900) }, { x: 0, y: 150, size: 600 });
+  assert.deepStrictEqual({ ...sandbox.window.__testClampView(1, 0, 0, 1200, 800) }, { zoom: 1, panX: 200, panY: 0 });
+  assert.deepStrictEqual({ ...sandbox.window.__testMap(600, 400, 50, 1200, 800, 1, 200, 0) }, { x: 25, y: 25 });
 });
 
 test('browser zoom state is constrained to a useful range', () => {
@@ -608,12 +721,12 @@ test('camera zoom keeps the touched grid point under the fingers', () => {
   vm.createContext(sandbox);
   vm.runInContext(`${js}\nwindow.__testZoomAt = zoomViewAtPoint; window.__testMap = screenToGridPoint;`, sandbox);
 
-  const before = sandbox.window.__testMap(600, 400, 50, 1200, 800, 1, 0, 0);
-  const camera = sandbox.window.__testZoomAt(1, 2, 0, 0, 600, 400, 1200, 800);
+  const before = sandbox.window.__testMap(600, 400, 50, 1200, 800, 1, 200, 0);
+  const camera = sandbox.window.__testZoomAt(1, 2, 200, 0, 600, 400, 1200, 800);
   const after = sandbox.window.__testMap(600, 400, 50, 1200, 800, camera.zoom, camera.panX, camera.panY);
 
   assert.deepStrictEqual({ ...after }, { ...before });
-  assert.deepStrictEqual({ ...camera }, { zoom: 2, panX: -600, panY: -400 });
+  assert.deepStrictEqual({ ...camera }, { zoom: 2, panX: -200, panY: -400 });
 });
 
 test('two finger drag pans the zoomed grid view', () => {
@@ -621,9 +734,9 @@ test('two finger drag pans the zoomed grid view', () => {
   vm.createContext(sandbox);
   vm.runInContext(`${js}\nwindow.__testDrag = dragView;`, sandbox);
 
-  assert.deepStrictEqual({ ...sandbox.window.__testDrag(2, -600, -400, 60, -30, 1200, 800) }, {
+  assert.deepStrictEqual({ ...sandbox.window.__testDrag(2, -200, -400, 60, -30, 1200, 800) }, {
     zoom: 2,
-    panX: -540,
+    panX: -140,
     panY: -430
   });
 });
@@ -646,23 +759,25 @@ test('desktop pointer users can pan without painting', () => {
   assert.match(js, /canvas\.addEventListener\('contextmenu'/);
 });
 
-test('drag painting skips duplicate cell writes', () => {
-  assert.match(js, /let lastPaintIndex = -1;/);
-  assert.match(js, /if \(i === lastPaintIndex\) return false;/);
-  assert.match(js, /lastPaintIndex = i;/);
+test('drag painting tracks the strongest brush effect per cell', () => {
+  assert.match(js, /let strokePaintStates = new Map\(\);/);
+  assert.match(js, /const state = strokePaintStates\.get\(i\) \|\| \{ originalProbability: grid\[i\], strength: 0 \};/);
+  assert.match(js, /if \(strength <= state\.strength\) return false;/);
+  assert.match(js, /strokePaintStates\.set\(i, \{ originalProbability: state\.originalProbability, strength \}\);/);
 });
 
-test('painting skips cells already in the requested state', () => {
+test('painting skips cells when the brush would not change probability', () => {
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
-  vm.runInContext(`${js}\nwindow.__testInside = isGridPointInside; window.__testShouldUpdateCell = shouldUpdateCell;`, sandbox);
+  vm.runInContext(`${js}\nwindow.__testInside = isGridPointInside; window.__testApplyBrush = applyBrushProbability;`, sandbox);
 
   assert.strictEqual(sandbox.window.__testInside({ x: 0, y: 0 }, 50), true);
   assert.strictEqual(sandbox.window.__testInside({ x: 50, y: 0 }, 50), false);
-  assert.strictEqual(sandbox.window.__testShouldUpdateCell(1, 'paint'), false);
-  assert.strictEqual(sandbox.window.__testShouldUpdateCell(0.5, 'paint'), true);
-  assert.strictEqual(sandbox.window.__testShouldUpdateCell(0, 'erase'), false);
-  assert.match(js, /if \(!shouldUpdateCell\(grid\[i\], paintTool\)\) return false;/);
+  assert.strictEqual(sandbox.window.__testApplyBrush(1, 'paint', 1), 1);
+  assert.strictEqual(sandbox.window.__testApplyBrush(0, 'erase', 1), 0);
+  assert.strictEqual(sandbox.window.__testApplyBrush(0.5, 'paint', 1), 1);
+  assert.match(js, /const nextProbability = applyStrongestBrushProbability\(/);
+  assert.match(js, /if \(nextProbability === grid\[i\]\) return false;/);
 });
 
 test('alt-drag temporarily flips the active paint tool', () => {
@@ -705,7 +820,7 @@ test('fast drag painting interpolates grid cells so strokes do not leave gaps', 
     { x: 1, y: 1 },
     { x: 2, y: 2 }
   ]);
-  assert.match(js, /for \(const point of interpolatedGridPoints\(lastPaintPoint, p\)\)/);
+  assert.match(js, /for \(const centre of interpolatedGridPoints\(lastPaintPoint, p\)\)/);
 });
 
 test('desktop mouse hover previews the cell that will be painted', () => {
@@ -742,7 +857,7 @@ test('hover preview skips cells outside the visible canvas', () => {
   assert.strictEqual(sandbox.window.__testVisibleRect(-10, 10, 20, 20, 100, 100), true);
   assert.strictEqual(sandbox.window.__testVisibleRect(-30, 10, 20, 20, 100, 100), false);
   assert.strictEqual(sandbox.window.__testVisibleRect(100, 10, 20, 20, 100, 100), false);
-  assert.match(js, /if \(!isRectVisible\(x, y, cellX, cellY, canvas\.width, canvas\.height\)\) return;/);
+  assert.match(js, /if \(!isRectVisible\(x, y, cellX, cellY, canvas\.width, canvas\.height\)\) continue;/);
 });
 
 test('leaving the canvas only redraws when a hover preview was visible', () => {
@@ -948,7 +1063,7 @@ test('switching rule preset to custom refreshes the label', () => {
 });
 
 test('drawing avoids rainbow colour lookup when disco mode is off', () => {
-  assert.match(js, /gridPixelColour\(p, i, generation, discoMode, liveColour\)/);
+  assert.match(js, /gridPixelColour\(displayProbability, i, generation, discoMode, liveColour\)/);
   assert.match(js, /const liveColour = discoMode \? rainbowCellColour\(cellIndex, generation\) : selectedLiveColour;/);
 });
 
@@ -978,8 +1093,8 @@ test('hidden colour slider changes avoid redraws while disco mode owns the palet
   assert.strictEqual(sandbox.window.__testShouldRedrawForControlInput('hue', true), false);
   assert.strictEqual(sandbox.window.__testShouldRedrawForControlInput('saturation', true), false);
   assert.strictEqual(sandbox.window.__testShouldRedrawForControlInput('hue', false), true);
-  assert.strictEqual(sandbox.window.__testShouldRedrawForControlInput('speed', true), true);
-  assert.match(js, /if \(shouldRedrawForControlInput\(key, controls\.discoMode\.checked\)\) requestDraw\(\);/);
+  assert.strictEqual(sandbox.window.__testShouldRedrawForControlInput('speed', true), false);
+  assert.match(js, /if \(shouldRedrawForControlInput\(key, controls\.discoMode\.checked\)\) requestGridDraw\(\);/);
   assert.match(README, /avoids redraws for hidden colour changes while disco mode owns the palette/);
 });
 

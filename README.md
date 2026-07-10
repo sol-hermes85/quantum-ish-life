@@ -17,7 +17,7 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 - **Random**: seed a random grid
 - **Invert**: flip the current probability grid so empty areas become alive and live areas become empty
 - **Clear**: reset the grid
-- **One finger drag**: paint or erase cells; fast drags fill the gaps between cells, stroke feedback reports how many cells changed, desktop mouse users get a crosshair cursor and filled cell preview before painting, erase/pan modes change the cursor, and the active paint/erase button is visually marked
+- **One finger drag**: paint or erase cells; fast drags fill the gaps between cells, stroke feedback reports how many cells changed, desktop mouse users get a crosshair cursor and filled brush preview before painting, erase/pan modes change the cursor, and the active paint/erase button is visually marked
 - **Alt-drag**: temporarily flip paint and erase for quick corrections without changing the selected tool; the desktop hover preview also flips so you can see the temporary tool before drawing
 - **Two finger pinch / drag**: zoom and pan around the grid, with a brief zoom percentage shown when the pinch ends
 - **Double-click / double-tap / `Home` / `0` key**: reset the view quickly from the grid or keyboard
@@ -25,12 +25,14 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 - **Scroll wheel / + − buttons**: zoom in or out on the grid; zoom buttons dim when the view is already at its limit
 - **Reset view**: return zoom and pan to the default view; the current zoom level is shown in the stats panel
 - **Grid size**: change the simulation resolution
+- **Probability brush**: switch between a precise dot and Bloom, a soft 3 × 3 probability cluster with weaker surrounding cells and matching erase behaviour
 - **Preset pattern**: seed a glider, blinker, traffic light, lightweight spaceship, R-pentomino, small exploder, acorn, diehard, loaf, block, toad, cross, diamond, boat, tub, pulsar, beacon, clock, pentadecathlon, Gosper glider gun, or random soup; choosing a preset replaces the current grid, selected patterns show their live cell count, and stay selected when the grid size changes
-- **Rule preset**: quickly switch between classic-ish, calm, HighLife-ish, spark, and chaotic probability rules; the active preset is shown with a readable label and each preset moves the survival, birth, and noise sliders together
+- **Rule preset**: quickly switch between classic-ish, calm, HighLife-ish, spark, and chaotic probability rules; the active preset is shown with a readable label and each preset moves the survival, birth, and noise sliders together. HighLife-ish uses its defining `B36` births with three or six neighbours
 - **Random density**: control how full the random grid and random soup preset are
 - **Cell age limit**: set how many generations a living cell can survive before ageing out; `0` means cells never die of age
 - **Colour hue / saturation**: tune the colour used for live cells
 - **Disco mode**: cycle cells through the seven rainbow colours, changing each generation
+- **Time Echo**: leave faint, fading traces of recent cell probabilities so movement, waves, and collapses are easier to follow
 - **Speed**: generations per second
 - **Tool**: shows whether drag will paint or erase cells; reselecting the active tool is ignored to avoid noisy duplicate feedback, and play, pause with generation context, random, clear, invert, pattern load, reset-view, painting, erasing, manual stepping, and zoom changes also show a brief feedback pill over the grid, with longer messages staying visible a little longer
 - **Running state**: adds a subtle colour wash over the grid so play feels alive without adding visual clutter
@@ -67,4 +69,4 @@ http://localhost:8000
 
 This is intentionally lightweight and dependency-free. No framework, no build chain, no npm ceremony.
 
-The interface also respects reduced-motion preferences, keeps the floating zoom controls inside safe-area insets, gives range sliders a larger grab area, caps very high display pixel ratios to avoid excessive canvas work, primes canvas alpha once per buffer instead of rewriting it for every cell draw, skips unchanged stat/control-label, title, and disabled-button writes, avoids redundant reset-view and clamped pinch redraws, keeps the fine guide grid subtle as cells get larger, avoids redraws for hidden colour changes while disco mode owns the palette, avoids a per-cell index helper call during simulation steps, and resets the simulation clock on resume so play starts smoothly after a pause.
+The interface also respects reduced-motion preferences, keeps the floating zoom controls inside safe-area insets, gives range sliders a larger grab area, and keeps the logical grid square and centred on non-square screens. It caps very high display pixel ratios, reuses the existing pixel buffer for camera and overlay-only redraws, primes canvas alpha once per buffer, skips unchanged stat/control-label, title, and disabled-button writes, avoids redundant reset-view and clamped pinch redraws, keeps the fine guide grid subtle as cells get larger, avoids redraws for hidden colour changes while disco mode owns the palette, avoids a per-cell index helper call during simulation steps, and resets the simulation clock on resume so play starts smoothly after a pause.
