@@ -315,6 +315,7 @@ test('keyboard shortcuts expose common actions', () => {
   assert.match(html, /E paint\/erase/);
   assert.match(html, /1 paint, 2 erase/);
   assert.match(html, /H hide\/show controls/);
+  assert.match(html, /F frame live cells/);
   assert.match(html, /Z\/Home\/0 reset view/);
   assert.match(html, /\+\/− zoom/);
 
@@ -331,6 +332,7 @@ test('keyboard shortcuts expose common actions', () => {
   assert.strictEqual(sandbox.window.__testShortcut('r'), 'randomise');
   assert.strictEqual(sandbox.window.__testShortcut('c'), 'clear');
   assert.strictEqual(sandbox.window.__testShortcut('e'), 'toggle-tool');
+  assert.strictEqual(sandbox.window.__testShortcut('f'), 'frame-cells');
   assert.strictEqual(sandbox.window.__testShortcut('i'), 'invert');
   assert.strictEqual(sandbox.window.__testShortcut('d'), 'toggle-disco');
   assert.strictEqual(sandbox.window.__testShortcut('H'), 'toggle-controls');
@@ -341,6 +343,54 @@ test('keyboard shortcuts expose common actions', () => {
   assert.strictEqual(sandbox.window.__testShortcut('='), 'zoom-in');
   assert.strictEqual(sandbox.window.__testShortcut('-'), 'zoom-out');
   assert.strictEqual(sandbox.window.__testShortcut('x'), null);
+});
+
+test('F shortcut frames the current live cells without adding another visible control', () => {
+  assert.match(html, /Press F to frame the current live cells/);
+  assert.match(README, /frame the current live cells/);
+  assert.match(js, /else if \(action === 'frame-cells'\) frameLiveCells\(\);/);
+
+  const sandbox = { window: {}, console, Float32Array, Math };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testBounds = probabilityBounds; window.__testFrameCamera = cameraForGridBounds;`, sandbox);
+
+  const values = new Float32Array(25);
+  values[6] = 0.04;
+  values[12] = 0.5;
+  values[18] = 1;
+
+  assert.deepStrictEqual({ ...sandbox.window.__testBounds(values, 5) }, { minX: 2, minY: 2, maxX: 3, maxY: 3 });
+  assert.strictEqual(sandbox.window.__testBounds(new Float32Array(9), 3), null);
+
+  const framed = sandbox.window.__testFrameCamera({ minX: 22, minY: 22, maxX: 27, maxY: 27 }, 50, 1000, 1000);
+  assert.strictEqual(framed.zoom, 4);
+  assert.deepStrictEqual({ ...sandbox.window.__testFrameCamera(null, 50, 1000, 1000) }, { zoom: 1, panX: 0, panY: 0 });
+});
+
+test('grid boundary stays subtle while making panned edges legible', () => {
+  const sandbox = { window: {}, console, Math };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testBoundaryOpacity = gridBoundaryOpacity;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testBoundaryOpacity(0.25), 0.14);
+  assert.strictEqual(sandbox.window.__testBoundaryOpacity(1), 0.15);
+  assert.strictEqual(sandbox.window.__testBoundaryOpacity(4), 0.3);
+  assert.match(js, /drawGridBoundary\(drawSize\);/);
+  assert.match(README, /draws a faint grid boundary/);
+});
+
+test('simulation loop catches up a few missed ticks after slow frames', () => {
+  const sandbox = { window: {}, console, Math };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testStepBudget = simulationStepBudget; window.__testNextTickAfterSteps = nextTickAfterSimulationSteps;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testStepBudget(99, 100), 0);
+  assert.strictEqual(sandbox.window.__testStepBudget(250, 100), 2);
+  assert.strictEqual(sandbox.window.__testStepBudget(900, 100), 4);
+  assert.strictEqual(sandbox.window.__testNextTickAfterSteps(1000, 100, 2, 1250), 1200);
+  assert.strictEqual(sandbox.window.__testNextTickAfterSteps(1000, 100, 4, 1900), 1900);
+  assert.match(js, /for \(let i = 0; i < stepsDue; i\+\+\) step\(\);/);
+  assert.match(README, /catches up a few missed simulation ticks/);
 });
 
 test('preset patterns are centred and have expected live cell counts', () => {

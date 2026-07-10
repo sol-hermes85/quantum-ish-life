@@ -96,6 +96,46 @@ function dragView(zoom, panX, panY, deltaX, deltaY, canvasWidth, canvasHeight) {
   return clampView(zoom, panX + deltaX, panY + deltaY, canvasWidth, canvasHeight);
 }
 
+function probabilityBounds(values, size, threshold = 0.05) {
+  let minX = size;
+  let minY = size;
+  let maxX = -1;
+  let maxY = -1;
+
+  for (let i = 0; i < values.length; i++) {
+    if (values[i] < threshold) continue;
+    const x = i % size;
+    const y = Math.floor(i / size);
+    minX = Math.min(minX, x);
+    minY = Math.min(minY, y);
+    maxX = Math.max(maxX, x);
+    maxY = Math.max(maxY, y);
+  }
+
+  return maxX >= 0 ? { minX, minY, maxX, maxY } : null;
+}
+
+function cameraForGridBounds(bounds, size, canvasWidth, canvasHeight) {
+  if (!bounds) return clampView(1, 0, 0, canvasWidth, canvasHeight);
+
+  const base = baseGridRect(canvasWidth, canvasHeight);
+  const width = Math.max(1, bounds.maxX - bounds.minX + 1);
+  const height = Math.max(1, bounds.maxY - bounds.minY + 1);
+  const zoomForWidth = (canvasWidth * 0.74) / (base.size * (width / size));
+  const zoomForHeight = (canvasHeight * 0.74) / (base.size * (height / size));
+  const nextZoom = clampZoomLevel(Math.min(zoomForWidth, zoomForHeight));
+  const centreX = (bounds.minX + bounds.maxX + 1) / 2;
+  const centreY = (bounds.minY + bounds.maxY + 1) / 2;
+  const nextPanX = canvasWidth / 2 - (centreX / size) * base.size * nextZoom;
+  const nextPanY = canvasHeight / 2 - (centreY / size) * base.size * nextZoom;
+
+  return clampView(nextZoom, nextPanX, nextPanY, canvasWidth, canvasHeight);
+}
+
+function gridBoundaryOpacity(zoom) {
+  return Math.min(0.32, Math.max(0.14, Math.round((0.1 + zoom * 0.05) * 100) / 100));
+}
+
 function shouldApplyZoom(currentZoom, nextZoom) {
   return currentZoom !== nextZoom;
 }
@@ -248,6 +288,7 @@ function keyboardShortcutAction(key) {
     _: 'zoom-out',
     c: 'clear',
     e: 'toggle-tool',
+    f: 'frame-cells',
     h: 'toggle-controls',
     i: 'invert',
     d: 'toggle-disco',
@@ -544,6 +585,17 @@ function collapseProbability(probability) {
 
 function shouldRebuildPixelBuffer(pixelBufferDirty) {
   return pixelBufferDirty === true;
+}
+
+function simulationStepBudget(elapsedMs, intervalMs, maxSteps = 4) {
+  if (intervalMs <= 0 || elapsedMs < intervalMs) return 0;
+  return Math.min(maxSteps, Math.floor(elapsedMs / intervalMs));
+}
+
+function nextTickAfterSimulationSteps(previousTick, intervalMs, steps, timestampMs, maxSteps = 4) {
+  if (steps <= 0) return previousTick;
+  const nextTick = previousTick + intervalMs * steps;
+  return steps >= maxSteps && timestampMs - nextTick >= intervalMs ? timestampMs : nextTick;
 }
 
 function primeImageAlpha(imageData) {
@@ -860,6 +912,7 @@ if (typeof document !== 'undefined') (() => {
 
     const drawSize = baseGridRect(canvas.width, canvas.height).size * zoom;
     ctx.drawImage(bufferCanvas, panX, panY, drawSize, drawSize);
+    drawGridBoundary(drawSize);
     drawGuideGrid();
     drawHoverPreview();
 
@@ -873,6 +926,12 @@ if (typeof document !== 'undefined') (() => {
   function updateZoomControlState() {
     setDisabledIfChanged(controls.zoomOut, shouldDisableZoomControl(zoom, -1));
     setDisabledIfChanged(controls.zoomIn, shouldDisableZoomControl(zoom, 1));
+  }
+
+  function drawGridBoundary(drawSize) {
+    ctx.strokeStyle = `rgba(16,16,16,${gridBoundaryOpacity(zoom)})`;
+    ctx.lineWidth = Math.max(1, Math.min(3, Math.round(zoom)));
+    ctx.strokeRect(Math.round(panX) + 0.5, Math.round(panY) + 0.5, Math.round(drawSize), Math.round(drawSize));
   }
 
   function drawGuideGrid() {
@@ -1070,6 +1129,22 @@ if (typeof document !== 'undefined') (() => {
     requestDraw();
   }
 
+  function frameLiveCells() {
+    const bounds = probabilityBounds(grid, size);
+    const camera = cameraForGridBounds(bounds, size, canvas.width, canvas.height);
+    const previous = { zoom, panX, panY };
+    if (!cameraChanged(previous, camera)) {
+      showFeedback(bounds ? 'Cells framed' : 'View reset');
+      return;
+    }
+
+    zoom = camera.zoom;
+    panX = camera.panX;
+    panY = camera.panY;
+    showFeedback(bounds ? 'Cells framed' : 'View reset');
+    requestDraw();
+  }
+
   function togglePlay() {
     const previousRunning = running;
     running = !running;
@@ -1229,10 +1304,9 @@ if (typeof document !== 'undefined') (() => {
   function loop(ts) {
     if (running) {
       const interval = 1000 / Number(controls.speed.value);
-      if (ts - lastTick >= interval) {
-        step();
-        lastTick = ts;
-      }
+      const stepsDue = simulationStepBudget(ts - lastTick, interval);
+      for (let i = 0; i < stepsDue; i++) step();
+      lastTick = nextTickAfterSimulationSteps(lastTick, interval, stepsDue, ts);
     }
 
     requestAnimationFrame(loop);
@@ -1454,6 +1528,7 @@ if (typeof document !== 'undefined') (() => {
     else if (action === 'invert') invertGrid();
     else if (action === 'toggle-disco') toggleDiscoMode();
     else if (action === 'toggle-tool') setTool(tool === 'paint' ? 'erase' : 'paint');
+    else if (action === 'frame-cells') frameLiveCells();
     else if (action === 'paint-tool') setTool('paint');
     else if (action === 'erase-tool') setTool('erase');
     else if (action === 'toggle-controls') setControlsCollapsed(!controlsCollapsed);
