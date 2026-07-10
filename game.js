@@ -939,8 +939,8 @@ if (typeof document !== 'undefined') (() => {
     const drawSize = baseGridRect(canvas.width, canvas.height).size * zoom;
     ctx.drawImage(bufferCanvas, panX, panY, drawSize, drawSize);
     drawGridBoundary(drawSize);
-    drawGuideGrid();
-    drawHoverPreview();
+    drawGuideGrid(drawSize);
+    drawHoverPreview(drawSize);
 
     setTextIfChanged(labels.zoomLevel, zoomPercentLabel(zoom));
     setTextIfChanged(labels.runStatus, running ? 'Running' : 'Paused');
@@ -960,8 +960,7 @@ if (typeof document !== 'undefined') (() => {
     ctx.strokeRect(Math.round(panX) + 0.5, Math.round(panY) + 0.5, Math.round(drawSize), Math.round(drawSize));
   }
 
-  function drawGuideGrid() {
-    const drawSize = baseGridRect(canvas.width, canvas.height).size * zoom;
+  function drawGuideGrid(drawSize) {
     const cellX = drawSize / size;
     const cellY = drawSize / size;
     if (!shouldDrawGuideGrid(cellX, cellY)) return;
@@ -992,10 +991,9 @@ if (typeof document !== 'undefined') (() => {
     ctx.stroke();
   }
 
-  function drawHoverPreview() {
+  function drawHoverPreview(drawSize) {
     if (!hoverCell) return;
 
-    const drawSize = baseGridRect(canvas.width, canvas.height).size * zoom;
     const cellX = drawSize / size;
     const cellY = drawSize / size;
     if (Math.min(cellX, cellY) < 4) return;
@@ -1179,6 +1177,16 @@ if (typeof document !== 'undefined') (() => {
     requestDraw();
   }
 
+  function framePresetCells() {
+    const camera = cameraForGridBounds(probabilityBounds(grid, size), size, canvas.width, canvas.height);
+    const previous = { zoom, panX, panY };
+    if (!cameraChanged(previous, camera)) return;
+
+    zoom = camera.zoom;
+    panX = camera.panX;
+    panY = camera.panY;
+  }
+
   function togglePlay() {
     const previousRunning = running;
     running = !running;
@@ -1263,6 +1271,7 @@ if (typeof document !== 'undefined') (() => {
 
     generation = 0;
     lastLiveCount = null;
+    framePresetCells();
     showFeedback(`${displayPresetName(pattern)} loaded`);
     requestGridDraw();
   }

@@ -421,6 +421,14 @@ test('F shortcut frames the current live cells without adding another visible co
   assert.deepStrictEqual({ ...sandbox.window.__testFrameCamera(null, 50, 1000, 1000) }, { zoom: 1, panX: 0, panY: 0 });
 });
 
+test('selected preset patterns auto-frame into view when loaded', () => {
+  assert.match(html, /selected preset patterns auto-frame when loaded/);
+  assert.match(README, /auto-frame into view/);
+  assert.match(js, /function framePresetCells/);
+  assert.match(js, /framePresetCells\(\);\n    showFeedback\(`\$\{displayPresetName\(pattern\)\} loaded`\);/);
+  assert.match(js, /if \(pattern === 'random-soup'\) \{[\s\S]*return;[\s\S]*\}\n\n    const cells = patternCells/);
+});
+
 test('grid boundary stays subtle while making panned edges legible', () => {
   const sandbox = { window: {}, console, Math };
   vm.createContext(sandbox);
@@ -580,6 +588,14 @@ test('camera-only redraws reuse the existing pixel buffer', () => {
   assert.match(js, /function requestGridDraw\(\)/);
   assert.match(js, /if \(shouldRebuildPixelBuffer\(pixelBufferDirty\)\) rebuildPixelBuffer\(\);/);
   assert.match(js, /function panFromPointer[\s\S]*requestDraw\(\);/);
+});
+
+test('grid overlays reuse the draw size calculated for the main canvas draw', () => {
+  assert.match(js, /drawGuideGrid\(drawSize\);/);
+  assert.match(js, /drawHoverPreview\(drawSize\);/);
+  assert.match(js, /function drawGuideGrid\(drawSize\)/);
+  assert.match(js, /function drawHoverPreview\(drawSize\)/);
+  assert.match(README, /avoids repeated draw-size calculations for grid overlays/);
 });
 
 test('mixed Alt strokes reset brush strength and count unique cells', () => {
@@ -1266,7 +1282,7 @@ test('held keyboard shortcuts do not auto-repeat destructive actions', () => {
 });
 
 test('guide grid batches line drawing into two strokes', () => {
-  const guideBody = js.match(/function drawGuideGrid\(\) \{([\s\S]*?)\n  \}/)[1];
+  const guideBody = js.match(/function drawGuideGrid\(drawSize\) \{([\s\S]*?)\n  \}/)[1];
   const strokes = guideBody.match(/ctx\.stroke\(\);/g) || [];
   assert.strictEqual(strokes.length, 2);
 });
@@ -1289,6 +1305,13 @@ test('controls panel is compact and positioned beside the grid', () => {
   assert.match(css, /\.ui\s*{/);
   assert.match(css, /\.panel\s*{[^}]*max-width:\s*360px/s);
   assert.match(css, /\.panel\.collapsed\s+\.controlsGrid\s*{[^}]*display:\s*none/s);
+});
+
+test('collapsed controls keep the stats tray visually quiet', () => {
+  const css = fs.readFileSync('styles.css', 'utf8');
+  assert.match(css, /\.panel\.collapsed\s*{[^}]*background:\s*rgba\(16, 16, 16, 0\.72\)/s);
+  assert.match(css, /\.panel\.collapsed\s+\.stats\s*{[^}]*margin-bottom:\s*0/s);
+  assert.match(README, /Collapsed controls keep the stats tray tighter and quieter/);
 });
 
 test('coarse pointer controls keep comfortable tap targets', () => {
