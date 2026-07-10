@@ -101,6 +101,51 @@ test('probability brush offers dot and bloom footprints', () => {
   assert.strictEqual(sandbox.window.__testBrushProbability(1, 'erase', 0.6), 0.4);
 });
 
+test('tool status combines paint mode and active brush', () => {
+  assert.match(html, /id="toolStatus" aria-live="polite">Paint · Dot/);
+  assert.match(html, /The Tool stat shows the active paint\/erase mode and Dot\/Bloom brush/);
+  assert.match(README, /whether the Dot or Bloom brush is active/);
+
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testToolStatus = toolStatusLabel; window.__testBrushModeLabel = brushModeLabel;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testBrushModeLabel('dot'), 'Dot');
+  assert.strictEqual(sandbox.window.__testBrushModeLabel('bloom'), 'Bloom');
+  assert.strictEqual(sandbox.window.__testToolStatus('paint', 'dot'), 'Paint · Dot');
+  assert.strictEqual(sandbox.window.__testToolStatus('erase', 'bloom'), 'Erase · Bloom');
+});
+
+test('B shortcut toggles Dot and Bloom brush modes with feedback', () => {
+  assert.match(html, /B Dot\/Bloom brush/);
+  assert.match(README, /`B` Dot\/Bloom brush/);
+  assert.match(js, /b: 'toggle-brush'/);
+  assert.match(js, /else if \(action === 'toggle-brush'\) toggleBrushMode\(\);/);
+  assert.match(js, /showFeedback\(`\$\{brushModeLabel\(controls\.brushMode\.value\)\} brush`\);/);
+
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testNextBrushMode = nextBrushMode; window.__testShortcut = keyboardShortcutAction;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testNextBrushMode('dot'), 'bloom');
+  assert.strictEqual(sandbox.window.__testNextBrushMode('bloom'), 'dot');
+  assert.strictEqual(sandbox.window.__testShortcut('b'), 'toggle-brush');
+  assert.strictEqual(sandbox.window.__testShortcut('B'), 'toggle-brush');
+});
+
+test('brush mode changes only redraw the canvas when a hover preview is visible', () => {
+  assert.match(js, /function shouldRedrawBrushModeChange/);
+  assert.match(js, /if \(shouldRedrawBrushModeChange\(hoverCell\)\) requestDraw\(\);/);
+  assert.match(README, /skips brush-mode canvas redraws when no hover preview is visible/);
+
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testShouldRedrawBrush = shouldRedrawBrushModeChange;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testShouldRedrawBrush(null), false);
+  assert.strictEqual(sandbox.window.__testShouldRedrawBrush({ x: 3, y: 4 }), true);
+});
+
 test('overlapping Bloom strokes promote cells to the strongest footprint', () => {
   const sandbox = { window: {}, console };
   vm.createContext(sandbox);
@@ -437,7 +482,7 @@ test('changing grid size preserves the selected pattern instead of reverting to 
 test('stats expose the active drawing tool', () => {
   assert.match(html, /id="toolStatus"/);
   assert.match(html, /Tool:/);
-  assert.match(js, /labels\.toolStatus\.textContent = t === 'paint' \? 'Paint' : 'Erase';/);
+  assert.match(js, /setTextIfChanged\(labels\.toolStatus, toolStatusLabel\(t, controls\.brushMode\.value\)\);/);
 });
 
 test('paint and erase buttons expose their selected state clearly', () => {
@@ -634,7 +679,7 @@ test('zoom feedback uses the same rounded percent label as the stats panel', () 
   assert.strictEqual(sandbox.window.__testZoomPercent(1.234), '123%');
   assert.match(js, /setTextIfChanged\(labels\.zoomLevel, zoomPercentLabel\(zoom\)\);/);
   assert.match(js, /showFeedback\(`Zoom \$\{zoomPercentLabel\(zoom\)\}`\);/);
-  assert.match(html, /main mode, pinch zoom, button zoom, or grid content changes/);
+  assert.match(html, /main mode, brush mode, pinch zoom, button zoom, or grid content changes/);
 });
 
 test('pinch gestures show the zoom percentage when they end', () => {

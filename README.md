@@ -26,7 +26,7 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 - **Scroll wheel / + − buttons**: zoom in or out on the grid; zoom buttons dim when the view is already at its limit, and touch devices get larger tap targets
 - **Reset view**: return zoom and pan to the default view; the current zoom level is shown in the stats panel
 - **Grid size**: change the simulation resolution
-- **Probability brush**: switch between a precise dot and Bloom, a soft 3 × 3 probability cluster with weaker surrounding cells and matching erase behaviour
+- **Probability brush**: switch between a precise dot and Bloom, a soft 3 × 3 probability cluster with weaker surrounding cells and matching erase behaviour; press `B` to toggle it quickly while painting
 - **Preset pattern**: seed a glider, blinker, traffic light, lightweight spaceship, R-pentomino, small exploder, acorn, diehard, loaf, block, toad, cross, diamond, boat, tub, pulsar, beacon, clock, pentadecathlon, Gosper glider gun, or random soup; choosing a preset replaces the current grid, selected patterns show their live cell count, and stay selected when the grid size changes
 - **Rule preset**: quickly switch between classic-ish, calm, HighLife-ish, spark, and chaotic probability rules; the active preset is shown with a readable label and each preset moves the survival, birth, and noise sliders together. HighLife-ish uses its defining `B36` births with three or six neighbours
 - **Random density**: control how full the random grid and random soup preset are
@@ -35,7 +35,7 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 - **Disco mode**: cycle cells through the seven rainbow colours, changing each generation
 - **Time Echo**: leave faint, fading traces of recent cell probabilities so movement, waves, and collapses are easier to follow
 - **Speed**: generations per second
-- **Tool**: shows whether drag will paint or erase cells; reselecting the active tool is ignored to avoid noisy duplicate feedback, and play, pause with generation context, random, clear, invert, pattern load, reset-view, painting, erasing, manual stepping, and zoom changes also show a brief feedback pill over the grid, with longer messages staying visible a little longer
+- **Tool**: shows whether drag will paint or erase cells and whether the Dot or Bloom brush is active; reselecting the active tool is ignored to avoid noisy duplicate feedback, and play, pause with generation context, random, clear, invert, pattern load, reset-view, brush changes, painting, erasing, manual stepping, and zoom changes also show a brief feedback pill over the grid, with longer messages staying visible a little longer
 - **Running state**: adds a subtle colour wash over the grid so play feels alive without adding visual clutter
 - **Avg probability**: shows the average live probability across the grid
 - **Live count**: shows how many cells currently have at least 50% live probability
@@ -48,7 +48,7 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 - **Hidden tabs**: the simulation pauses when the browser tab is hidden to avoid wasting battery in the background
 - **Primary controls**: sit on a subtle glass tray with brighter hover states so they remain readable over busy patterns
 - **Underpopulation / survival / overpopulation / birth / noise**: tune the probability rules
-- **Keyboard shortcuts**: Space or `P` play/pause, `Esc` pause, `S` step, `R` random, `C` clear, `I` invert, `D` disco mode, `E` paint/erase, `1` paint, `2` erase, `H` hide/show controls, `F` frame live cells, `Z`, `Home`, or `0` reset view, `+` / `-` zoom. Held shortcuts are ignored after the first keydown so one long press does not flood steps or resets
+- **Keyboard shortcuts**: Space or `P` play/pause, `Esc` pause, `S` step, `R` random, `C` clear, `I` invert, `D` disco mode, `B` Dot/Bloom brush, `E` paint/erase, `1` paint, `2` erase, `H` hide/show controls, `F` frame live cells, `Z`, `Home`, or `0` reset view, `+` / `-` zoom. Held shortcuts are ignored after the first keydown so one long press does not flood steps or resets
 
 ## Local development
 
@@ -70,4 +70,4 @@ http://localhost:8000
 
 This is intentionally lightweight and dependency-free. No framework, no build chain, no npm ceremony.
 
-The interface also respects reduced-motion preferences, keeps the floating zoom controls inside safe-area insets, gives range sliders a larger grab area and coarse-pointer buttons larger tap targets, and keeps the logical grid square and centred on non-square screens. It caps very high display pixel ratios, reuses the existing pixel buffer for camera and overlay-only redraws, primes canvas alpha once per buffer, skips unchanged stat/control-label, title, and disabled-button writes, avoids redundant reset-view and clamped pinch redraws, avoids temporary arrays while handling pinch gestures, keeps the fine guide grid subtle as cells get larger, draws a faint grid boundary so panned and zoomed edges remain legible, avoids redraws for hidden colour changes while disco mode owns the palette, avoids a per-cell index helper call during simulation steps, catches up a few missed simulation ticks after a slow frame without spiralling, and resets the simulation clock on resume so play starts smoothly after a pause.
+The interface also respects reduced-motion preferences, keeps the floating zoom controls inside safe-area insets, gives range sliders a larger grab area and coarse-pointer buttons larger tap targets, and keeps the logical grid square and centred on non-square screens. It caps very high display pixel ratios, reuses the existing pixel buffer for camera and overlay-only redraws, primes canvas alpha once per buffer, skips unchanged stat/control-label, title, and disabled-button writes, avoids redundant reset-view and clamped pinch redraws, avoids temporary arrays while handling pinch gestures, keeps the fine guide grid subtle as cells get larger, draws a faint grid boundary so panned and zoomed edges remain legible, skips brush-mode canvas redraws when no hover preview is visible, avoids redraws for hidden colour changes while disco mode owns the palette, avoids a per-cell index helper call during simulation steps, catches up a few missed simulation ticks after a slow frame without spiralling, and resets the simulation clock on resume so play starts smoothly after a pause.

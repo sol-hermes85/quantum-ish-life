@@ -205,6 +205,18 @@ function effectivePaintTool(selectedTool, altKey) {
   return selectedTool === 'erase' ? 'paint' : 'erase';
 }
 
+function brushModeLabel(value) {
+  return value === 'bloom' ? 'Bloom' : 'Dot';
+}
+
+function nextBrushMode(value) {
+  return value === 'bloom' ? 'dot' : 'bloom';
+}
+
+function toolStatusLabel(selectedTool, brushMode) {
+  return `${selectedTool === 'paint' ? 'Paint' : 'Erase'} · ${brushModeLabel(brushMode)}`;
+}
+
 function shouldResetStrokeStrengths(previousTool, nextTool) {
   return previousTool !== nextTool;
 }
@@ -244,6 +256,10 @@ function shouldPanPointer(event) {
 }
 
 function shouldClearHoverCell(hoverCell) {
+  return hoverCell !== null;
+}
+
+function shouldRedrawBrushModeChange(hoverCell) {
   return hoverCell !== null;
 }
 
@@ -287,6 +303,7 @@ function keyboardShortcutAction(key) {
     '-': 'zoom-out',
     _: 'zoom-out',
     c: 'clear',
+    b: 'toggle-brush',
     e: 'toggle-tool',
     f: 'frame-cells',
     h: 'toggle-controls',
@@ -1002,9 +1019,10 @@ if (typeof document !== 'undefined') (() => {
     setTextIfChanged(labels.gridSize, `${size} × ${size}`);
     setTextIfChanged(labels.ageLimit, controls.ageLimit.value === '0' ? 'never' : `${controls.ageLimit.value} gen`);
     setTextIfChanged(labels.density, `${Math.round(Number(controls.density.value) * 100)}%`);
-    setTextIfChanged(labels.brushMode, controls.brushMode.value === 'bloom' ? 'Bloom' : 'Dot');
+    setTextIfChanged(labels.brushMode, brushModeLabel(controls.brushMode.value));
     setTextIfChanged(labels.patternPreset, patternPresetLabel(controls.patternPreset.value, size));
     setTextIfChanged(labels.rulePreset, displayRulePresetName(controls.rulePreset.value));
+    setTextIfChanged(labels.toolStatus, toolStatusLabel(tool, controls.brushMode.value));
     setTextIfChanged(labels.hue, `${controls.hue.value}°`);
     setTextIfChanged(labels.saturation, `${controls.saturation.value}%`);
     setTextIfChanged(labels.discoMode, controls.discoMode.checked ? 'on' : 'off');
@@ -1105,9 +1123,16 @@ if (typeof document !== 'undefined') (() => {
     controls.eraseMode.classList.toggle('primary', t === 'erase');
     controls.paintMode.setAttribute('aria-pressed', String(t === 'paint'));
     controls.eraseMode.setAttribute('aria-pressed', String(t === 'erase'));
-    labels.toolStatus.textContent = t === 'paint' ? 'Paint' : 'Erase';
+    setTextIfChanged(labels.toolStatus, toolStatusLabel(t, controls.brushMode.value));
     updateShellMode();
     showFeedback(t === 'paint' ? 'Paint mode' : 'Erase mode');
+  }
+
+  function toggleBrushMode() {
+    controls.brushMode.value = nextBrushMode(controls.brushMode.value);
+    updateLabels();
+    showFeedback(`${brushModeLabel(controls.brushMode.value)} brush`);
+    if (shouldRedrawBrushModeChange(hoverCell)) requestDraw();
   }
 
   function showFeedback(message) {
@@ -1348,7 +1373,7 @@ if (typeof document !== 'undefined') (() => {
   });
   controls.brushMode.addEventListener('change', () => {
     updateLabels();
-    requestDraw();
+    if (shouldRedrawBrushModeChange(hoverCell)) requestDraw();
   });
   controls.rulePreset.addEventListener('change', () => {
     applyRulePreset(controls.rulePreset.value);
@@ -1539,6 +1564,7 @@ if (typeof document !== 'undefined') (() => {
     else if (action === 'clear') clearGrid();
     else if (action === 'invert') invertGrid();
     else if (action === 'toggle-disco') toggleDiscoMode();
+    else if (action === 'toggle-brush') toggleBrushMode();
     else if (action === 'toggle-tool') setTool(tool === 'paint' ? 'erase' : 'paint');
     else if (action === 'frame-cells') frameLiveCells();
     else if (action === 'paint-tool') setTool('paint');
