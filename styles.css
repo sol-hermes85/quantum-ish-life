@@ -101,6 +101,10 @@ canvas {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
 }
 
+#frameView {
+  font-size: 1.12rem;
+}
+
 .feedback {
   position: fixed;
   left: 50%;
@@ -393,5 +397,16 @@ select {
 
   .feedback {
     top: max(8px, env(safe-area-inset-top));
+  }
+}
+
+@media (pointer: coarse) {
+  .zoomControls button {
+    width: 48px;
+    height: 48px;
+  }
+
+  button {
+    min-height: 44px;
   }
 }

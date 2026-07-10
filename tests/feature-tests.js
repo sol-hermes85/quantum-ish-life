@@ -130,6 +130,7 @@ test('overlapping Bloom strokes promote cells to the strongest footprint', () =>
 
 test('view reset, zoom status, and preset pattern controls exist', () => {
   assert.match(html, /id="resetView"/);
+  assert.match(html, /id="frameView"/);
   assert.match(html, /id="zoomLevel"/);
   assert.match(html, /id="liveCount"/);
   assert.match(html, /id="livePercent"/);
@@ -157,7 +158,15 @@ test('view reset, zoom status, and preset pattern controls exist', () => {
   assert.match(html, /value="gosperGun"/);
   assert.match(html, /value="random-soup"/);
   assert.match(js, /function resetView/);
+  assert.match(js, /controls\.frameView\.addEventListener\('click', frameLiveCells\)/);
   assert.match(js, /function applyPattern/);
+});
+
+test('floating navigation includes a button to frame live cells', () => {
+  assert.match(html, /id="frameView"[^>]*aria-label="Frame live cells"/);
+  assert.match(html, /title="Frame live cells \(F\)"/);
+  assert.match(html, /Press F to frame the current live cells, or use the frame button to centre them/);
+  assert.match(README, /Frame button \/ `F` key/);
 });
 
 test('preset labels show readable names instead of raw values', () => {
@@ -1235,6 +1244,28 @@ test('controls panel is compact and positioned beside the grid', () => {
   assert.match(css, /\.ui\s*{/);
   assert.match(css, /\.panel\s*{[^}]*max-width:\s*360px/s);
   assert.match(css, /\.panel\.collapsed\s+\.controlsGrid\s*{[^}]*display:\s*none/s);
+});
+
+test('coarse pointer controls keep comfortable tap targets', () => {
+  const css = fs.readFileSync('styles.css', 'utf8');
+  assert.match(css, /@media \(pointer: coarse\)/);
+  assert.match(css, /\.zoomControls button\s*{[^}]*width:\s*48px/s);
+  assert.match(css, /button\s*{[^}]*min-height:\s*44px/s);
+});
+
+test('pinch helpers avoid temporary arrays while reading active pointers', () => {
+  const sandbox = { window: {}, console, Map };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testFirstTwoPointerValues = firstTwoPointerValues;`, sandbox);
+
+  const pointers = new Map([
+    [1, { clientX: 10 }],
+    [2, { clientX: 30 }]
+  ]);
+  const pair = sandbox.window.__testFirstTwoPointerValues(pointers);
+  assert.strictEqual(pair.first.clientX, 10);
+  assert.strictEqual(pair.second.clientX, 30);
+  assert.doesNotMatch(js, /\[\.\.activePointers\.values\(\)\]/);
 });
 
 test('game initialises against a browser-sized canvas without runtime errors', () => {

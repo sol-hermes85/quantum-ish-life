@@ -422,6 +422,14 @@ function distanceSquared(dx, dy) {
   return dx * dx + dy * dy;
 }
 
+function firstTwoPointerValues(pointerMap) {
+  const iterator = pointerMap.values();
+  return {
+    first: iterator.next().value,
+    second: iterator.next().value
+  };
+}
+
 function hslToRgb(hue, saturation, lightness) {
   const h = (((hue % 360) + 360) % 360) / 360;
   const s = Math.max(0, Math.min(1, saturation));
@@ -620,6 +628,7 @@ if (typeof document !== 'undefined') (() => {
     zoomIn: $('zoomIn'),
     zoomOut: $('zoomOut'),
     resetView: $('resetView'),
+    frameView: $('frameView'),
     feedback: $('feedback'),
     shell: $('shell'),
     panel: $('controlsPanel'),
@@ -1266,21 +1275,23 @@ if (typeof document !== 'undefined') (() => {
   }
 
   function pointerMidpoint() {
-    const points = [...activePointers.values()].map(toCanvasPoint);
-    if (points.length < 2) return { x: 0, y: 0 };
+    if (activePointers.size < 2) return { x: 0, y: 0 };
 
+    const { first, second } = firstTwoPointerValues(activePointers);
+    const firstPoint = toCanvasPoint(first);
+    const secondPoint = toCanvasPoint(second);
     return {
-      x: (points[0].x + points[1].x) / 2,
-      y: (points[0].y + points[1].y) / 2
+      x: (firstPoint.x + secondPoint.x) / 2,
+      y: (firstPoint.y + secondPoint.y) / 2
     };
   }
 
   function pointerDistance() {
-    const points = [...activePointers.values()];
-    if (points.length < 2) return 0;
+    if (activePointers.size < 2) return 0;
 
-    const dx = points[0].clientX - points[1].clientX;
-    const dy = points[0].clientY - points[1].clientY;
+    const { first, second } = firstTwoPointerValues(activePointers);
+    const dx = first.clientX - second.clientX;
+    const dy = first.clientY - second.clientY;
     return Math.hypot(dx, dy);
   }
 
@@ -1323,6 +1334,7 @@ if (typeof document !== 'undefined') (() => {
   controls.zoomIn.addEventListener('click', () => applyZoomDelta(0.2));
   controls.zoomOut.addEventListener('click', () => applyZoomDelta(-0.2));
   controls.resetView.addEventListener('click', resetView);
+  controls.frameView.addEventListener('click', frameLiveCells);
   controls.controlsToggle.addEventListener('click', () => setControlsCollapsed(!controlsCollapsed));
   controls.gridSize.addEventListener('input', () => {
     resizeBuffers(Number(controls.gridSize.value));
