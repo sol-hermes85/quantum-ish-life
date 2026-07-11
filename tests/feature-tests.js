@@ -491,6 +491,21 @@ test('grid boundary stays subtle while making panned edges legible', () => {
   assert.match(README, /draws a faint grid boundary/);
 });
 
+test('grid edges fade softly and camera can overscroll slightly when zoomed', () => {
+  const sandbox = { window: {}, console, Math };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testOverscroll = cameraOverscroll; window.__testClamp = clampView; window.__testFade = gridEdgeFadeWidth;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testOverscroll(1000, 1), 0);
+  assert.strictEqual(sandbox.window.__testOverscroll(1000, 2), 80);
+  assert.deepStrictEqual({ ...sandbox.window.__testClamp(2, 200, 200, 1000, 1000) }, { zoom: 2, panX: 80, panY: 80 });
+  assert.deepStrictEqual({ ...sandbox.window.__testClamp(2, -1200, -1200, 1000, 1000) }, { zoom: 2, panX: -1080, panY: -1080 });
+  assert.strictEqual(sandbox.window.__testFade(1000), 60);
+  assert.strictEqual(sandbox.window.__testFade(200), 18);
+  assert.match(js, /drawSoftGridEdges\(drawSize\);\n    drawGridBoundary\(drawSize\);/);
+  assert.match(README, /soft edge fade and slight overscroll/);
+});
+
 test('simulation loop catches up a few missed ticks after slow frames', () => {
   const sandbox = { window: {}, console, Math };
   vm.createContext(sandbox);

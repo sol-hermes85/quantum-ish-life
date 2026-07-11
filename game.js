@@ -65,16 +65,22 @@ function baseGridRect(canvasWidth, canvasHeight) {
   };
 }
 
+function cameraOverscroll(baseSize, zoom) {
+  if (zoom <= 1) return 0;
+  return Math.round(Math.min(140, baseSize * 0.08));
+}
+
 function clampView(zoom, panX, panY, canvasWidth, canvasHeight) {
   const base = baseGridRect(canvasWidth, canvasHeight);
   const scaledWidth = base.size * zoom;
   const scaledHeight = base.size * zoom;
+  const overscroll = cameraOverscroll(base.size, zoom);
   const clampedX = scaledWidth <= canvasWidth
     ? (canvasWidth - scaledWidth) / 2
-    : Math.max(canvasWidth - scaledWidth, Math.min(0, panX));
+    : Math.max(canvasWidth - scaledWidth - overscroll, Math.min(overscroll, panX));
   const clampedY = scaledHeight <= canvasHeight
     ? (canvasHeight - scaledHeight) / 2
-    : Math.max(canvasHeight - scaledHeight, Math.min(0, panY));
+    : Math.max(canvasHeight - scaledHeight - overscroll, Math.min(overscroll, panY));
 
   return {
     zoom,
@@ -134,6 +140,10 @@ function cameraForGridBounds(bounds, size, canvasWidth, canvasHeight) {
 
 function gridBoundaryOpacity(zoom) {
   return Math.min(0.32, Math.max(0.14, Math.round((0.1 + zoom * 0.05) * 100) / 100));
+}
+
+function gridEdgeFadeWidth(drawSize) {
+  return Math.round(Math.min(72, Math.max(18, drawSize * 0.06)));
 }
 
 function shouldApplyZoom(currentZoom, nextZoom) {
@@ -963,6 +973,7 @@ if (typeof document !== 'undefined') (() => {
 
     const drawSize = baseGridRect(canvas.width, canvas.height).size * zoom;
     ctx.drawImage(bufferCanvas, panX, panY, drawSize, drawSize);
+    drawSoftGridEdges(drawSize);
     drawGridBoundary(drawSize);
     drawGuideGrid(drawSize);
     drawHoverPreview(drawSize);
@@ -977,6 +988,50 @@ if (typeof document !== 'undefined') (() => {
   function updateZoomControlState() {
     setDisabledIfChanged(controls.zoomOut, shouldDisableZoomControl(zoom, -1));
     setDisabledIfChanged(controls.zoomIn, shouldDisableZoomControl(zoom, 1));
+  }
+
+  function drawSoftGridEdges(drawSize) {
+    const fade = gridEdgeFadeWidth(drawSize);
+    const left = panX;
+    const top = panY;
+    const right = panX + drawSize;
+    const bottom = panY + drawSize;
+    const visibleLeft = Math.max(0, left);
+    const visibleTop = Math.max(0, top);
+    const visibleRight = Math.min(canvas.width, right);
+    const visibleBottom = Math.min(canvas.height, bottom);
+    if (visibleRight <= visibleLeft || visibleBottom <= visibleTop) return;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(visibleLeft, visibleTop, visibleRight - visibleLeft, visibleBottom - visibleTop);
+    ctx.clip();
+
+    const topGradient = ctx.createLinearGradient(0, top, 0, top + fade);
+    topGradient.addColorStop(0, 'rgba(255,255,255,0.86)');
+    topGradient.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = topGradient;
+    ctx.fillRect(left, top, drawSize, fade);
+
+    const bottomGradient = ctx.createLinearGradient(0, bottom - fade, 0, bottom);
+    bottomGradient.addColorStop(0, 'rgba(255,255,255,0)');
+    bottomGradient.addColorStop(1, 'rgba(255,255,255,0.86)');
+    ctx.fillStyle = bottomGradient;
+    ctx.fillRect(left, bottom - fade, drawSize, fade);
+
+    const leftGradient = ctx.createLinearGradient(left, 0, left + fade, 0);
+    leftGradient.addColorStop(0, 'rgba(255,255,255,0.72)');
+    leftGradient.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = leftGradient;
+    ctx.fillRect(left, top, fade, drawSize);
+
+    const rightGradient = ctx.createLinearGradient(right - fade, 0, right, 0);
+    rightGradient.addColorStop(0, 'rgba(255,255,255,0)');
+    rightGradient.addColorStop(1, 'rgba(255,255,255,0.72)');
+    ctx.fillStyle = rightGradient;
+    ctx.fillRect(right - fade, top, fade, drawSize);
+
+    ctx.restore();
   }
 
   function drawGridBoundary(drawSize) {
