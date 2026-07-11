@@ -606,7 +606,7 @@ test('mixed Alt strokes reset brush strength and count unique cells', () => {
   assert.strictEqual(sandbox.window.__testResetStrengths('paint', 'paint'), false);
   assert.strictEqual(sandbox.window.__testResetStrengths('paint', 'erase'), true);
   assert.strictEqual(sandbox.window.__testResetStrengths('erase', 'paint'), true);
-  assert.match(js, /if \(shouldResetStrokeStrengths\(strokeStrengthTool, paintTool\)\) \{[\s\S]*strokePaintStates = new Map\(\);/);
+  assert.match(js, /if \(shouldResetStrokeStrengths\(strokeStrengthTool, paintTool\)\) \{[\s\S]*strokePaintStates\.clear\(\);/);
   assert.match(js, /let strokeChangedIndices = new Set\(\);/);
   assert.match(js, /strokeChangedIndices\.add\(i\);/);
   assert.match(js, /paintStrokeFeedback\(strokeFeedbackTool, strokeChangedIndices\.size\)/);
@@ -1058,6 +1058,47 @@ test('grid content actions show clear feedback', () => {
   assert.match(js, /showFeedback\('Grid inverted'\)/);
   assert.match(js, /showFeedback\(`\$\{displayPresetName\(pattern\)\} loaded`\)/);
   assert.match(html, /grid content changes/);
+});
+
+test('clear asks for one quick confirmation before wiping the grid', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testClearLabel = clearButtonLabel; window.__testClearActive = clearConfirmationActive;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testClearLabel(false), 'Clear');
+  assert.strictEqual(sandbox.window.__testClearLabel(true), 'Sure?');
+  assert.strictEqual(sandbox.window.__testClearActive(1000, 1200), true);
+  assert.strictEqual(sandbox.window.__testClearActive(1300, 1200), false);
+  assert.match(html, /Clear asks for one quick confirmation/);
+  assert.match(js, /function confirmOrClearGrid\(\)/);
+  assert.match(js, /showFeedback\('Tap Clear again'\)/);
+  assert.match(js, /controls\.clear\.addEventListener\('click', confirmOrClearGrid\);/);
+  assert.match(js, /else if \(action === 'clear'\) confirmOrClearGrid\(\);/);
+});
+
+test('pending clear state is visibly marked but reversible', () => {
+  const css = fs.readFileSync('styles.css', 'utf8');
+
+  assert.match(html, /id="clear"[^>]*aria-label="Clear grid"/);
+  assert.match(css, /button\.dangerPending\s*{[^}]*background:\s*rgba\(153, 27, 27, 0\.94\)/s);
+  assert.match(js, /controls\.clear\.classList\.toggle\('dangerPending', pending\)/);
+  assert.match(js, /controls\.clear\.setAttribute\('aria-label', pending \? 'Confirm clear grid' : 'Clear grid'\)/);
+});
+
+test('paint stroke tracking collections are reused between strokes', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testResetStrokeCollections = resetStrokeCollections;`, sandbox);
+
+  const strokeStates = new Map([[1, { strength: 1 }]]);
+  const changedIndices = new Set([1]);
+  sandbox.window.__testResetStrokeCollections(strokeStates, changedIndices);
+
+  assert.strictEqual(strokeStates.size, 0);
+  assert.strictEqual(changedIndices.size, 0);
+  assert.match(js, /strokePaintStates\.clear\(\);/);
+  assert.match(js, /strokeChangedIndices\.clear\(\);/);
+  assert.match(README, /reuses paint stroke tracking collections/);
 });
 
 test('desktop panning supports shift, middle, and right drag', () => {

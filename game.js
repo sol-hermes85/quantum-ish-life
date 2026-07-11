@@ -589,6 +589,19 @@ function feedbackDuration(message) {
   return message.length > 18 ? 1300 : 900;
 }
 
+function clearButtonLabel(pending) {
+  return pending ? 'Sure?' : 'Clear';
+}
+
+function clearConfirmationActive(now, pendingUntil) {
+  return pendingUntil > 0 && now <= pendingUntil;
+}
+
+function resetStrokeCollections(strokeStates, changedIndices) {
+  strokeStates.clear();
+  changedIndices.clear();
+}
+
 function tapMemoryFromPointerUp(tapCandidate, timeStamp, point) {
   return {
     time: timeStamp || tapCandidate.time,
@@ -734,6 +747,8 @@ if (typeof document !== 'undefined') (() => {
   let pinchStartMidpoint = { x: 0, y: 0 };
   let pinchGestureActive = false;
   let feedbackTimer = 0;
+  let clearConfirmTimer = 0;
+  let clearPendingUntil = 0;
   let lastTapTime = 0;
   let lastTapPoint = null;
   let tapCandidate = null;
@@ -820,6 +835,7 @@ if (typeof document !== 'undefined') (() => {
   }
 
   function randomise({ keepPreset = false } = {}) {
+    cancelClearConfirmation();
     if (!keepPreset) resetPatternSelection();
     grid.fill(0);
     echo.fill(0);
@@ -1080,7 +1096,7 @@ if (typeof document !== 'undefined') (() => {
 
     const paintTool = effectivePaintTool(tool, e.altKey);
     if (shouldResetStrokeStrengths(strokeStrengthTool, paintTool)) {
-      strokePaintStates = new Map();
+      strokePaintStates.clear();
       strokeStrengthTool = paintTool;
       strokeFeedbackTool = 'mixed';
     }
@@ -1147,6 +1163,18 @@ if (typeof document !== 'undefined') (() => {
     controls.panel.classList.toggle('collapsed', controlsCollapsed);
     controls.controlsToggle.textContent = controlsCollapsed ? 'Show controls' : 'Hide controls';
     controls.controlsToggle.setAttribute('aria-expanded', String(!controlsCollapsed));
+  }
+
+  function setClearConfirmation(pending) {
+    clearPendingUntil = pending ? performance.now() + 1800 : 0;
+    controls.clear.classList.toggle('dangerPending', pending);
+    controls.clear.textContent = clearButtonLabel(pending);
+    controls.clear.setAttribute('aria-label', pending ? 'Confirm clear grid' : 'Clear grid');
+  }
+
+  function cancelClearConfirmation() {
+    clearTimeout(clearConfirmTimer);
+    setClearConfirmation(false);
   }
 
   function resetView() {
@@ -1224,6 +1252,7 @@ if (typeof document !== 'undefined') (() => {
   }
 
   function clearGrid() {
+    cancelClearConfirmation();
     resetPatternSelection();
     grid.fill(0);
     echo.fill(0);
@@ -1234,7 +1263,20 @@ if (typeof document !== 'undefined') (() => {
     requestGridDraw();
   }
 
+  function confirmOrClearGrid() {
+    if (!clearConfirmationActive(performance.now(), clearPendingUntil)) {
+      setClearConfirmation(true);
+      showFeedback('Tap Clear again');
+      clearTimeout(clearConfirmTimer);
+      clearConfirmTimer = setTimeout(() => setClearConfirmation(false), 1800);
+      return;
+    }
+
+    clearGrid();
+  }
+
   function invertGrid() {
+    cancelClearConfirmation();
     resetPatternSelection();
     invertProbabilityGrid(grid, ages);
     echo.fill(0);
@@ -1251,6 +1293,7 @@ if (typeof document !== 'undefined') (() => {
   }
 
   function applyPattern(pattern) {
+    cancelClearConfirmation();
     if (pattern === 'random-soup') {
       randomise({ keepPreset: true });
       showFeedback('Random soup');
@@ -1362,7 +1405,7 @@ if (typeof document !== 'undefined') (() => {
   controls.step.addEventListener('click', manualStep);
   controls.randomise.addEventListener('click', randomise);
   controls.invert.addEventListener('click', invertGrid);
-  controls.clear.addEventListener('click', clearGrid);
+  controls.clear.addEventListener('click', confirmOrClearGrid);
   controls.paintMode.addEventListener('click', () => setTool('paint'));
   controls.eraseMode.addEventListener('click', () => setTool('erase'));
   controls.zoomIn.addEventListener('click', () => applyZoomDelta(0.2));
@@ -1442,12 +1485,12 @@ if (typeof document !== 'undefined') (() => {
     tapCandidate = { pointerId: e.pointerId, time: tapTime, point: tapPoint };
 
     isDrawing = true;
-    strokeChangedIndices = new Set();
+    strokeChangedIndices.clear();
     strokeFeedbackTool = effectivePaintTool(tool, e.altKey);
     strokeStrengthTool = strokeFeedbackTool;
     hoverCell = null;
     updateShellMode();
-    strokePaintStates = new Map();
+    strokePaintStates.clear();
     lastPaintPoint = null;
     paint(e);
   }, { passive: false });
@@ -1505,7 +1548,7 @@ if (typeof document !== 'undefined') (() => {
     const wasDrawing = isDrawing;
     isDrawing = false;
     isPanning = false;
-    strokePaintStates = new Map();
+    strokePaintStates.clear();
     lastPaintPoint = null;
     if (tapCandidate?.pointerId === e.pointerId) {
       const tapMemory = tapMemoryFromPointerUp(tapCandidate, e.timeStamp || Date.now(), toCanvasPoint(e));
@@ -1520,7 +1563,7 @@ if (typeof document !== 'undefined') (() => {
       showFeedback(`Zoom ${zoomPercentLabel(zoom)}`);
     }
     if (completedPinch) pinchGestureActive = false;
-    strokeChangedIndices = new Set();
+    strokeChangedIndices.clear();
     updateShellMode();
     releasePointer(e.pointerId);
   }, { passive: false });
@@ -1529,8 +1572,7 @@ if (typeof document !== 'undefined') (() => {
     activePointers.delete(e.pointerId);
     isDrawing = false;
     isPanning = false;
-    strokePaintStates = new Map();
-    strokeChangedIndices = new Set();
+    resetStrokeCollections(strokePaintStates, strokeChangedIndices);
     lastPaintPoint = null;
     if (tapCandidate?.pointerId === e.pointerId) tapCandidate = null;
     if (activePointers.size < 2) pinchGestureActive = false;
@@ -1570,7 +1612,7 @@ if (typeof document !== 'undefined') (() => {
     else if (action === 'pause') pauseSimulation();
     else if (action === 'step') manualStep();
     else if (action === 'randomise') randomise();
-    else if (action === 'clear') clearGrid();
+    else if (action === 'clear') confirmOrClearGrid();
     else if (action === 'invert') invertGrid();
     else if (action === 'toggle-disco') toggleDiscoMode();
     else if (action === 'toggle-brush') toggleBrushMode();
