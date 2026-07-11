@@ -311,6 +311,7 @@ function keyboardShortcutAction(key) {
     h: 'toggle-controls',
     i: 'invert',
     d: 'toggle-disco',
+    t: 'toggle-time-echo',
     r: 'randomise',
     s: 'step',
     home: 'reset-view',
@@ -1297,6 +1298,15 @@ if (typeof document !== 'undefined') (() => {
   function toggleDiscoMode() {
     controls.discoMode.checked = !controls.discoMode.checked;
     updateLabels();
+    showFeedback(controls.discoMode.checked ? 'Disco on' : 'Disco off');
+    requestGridDraw();
+  }
+
+  function toggleTimeEcho() {
+    controls.timeEcho.checked = !controls.timeEcho.checked;
+    if (!controls.timeEcho.checked) echo.fill(0);
+    updateLabels();
+    showFeedback(controls.timeEcho.checked ? 'Time Echo on' : 'Time Echo off');
     requestGridDraw();
   }
 
@@ -1329,7 +1339,10 @@ if (typeof document !== 'undefined') (() => {
 
   function applyRulePreset(name) {
     const preset = rulePresetValues(name);
-    if (!preset) return;
+    if (!preset) {
+      updateLabels();
+      return false;
+    }
 
     for (const [key, value] of Object.entries(preset)) {
       controls[key].value = value.toFixed(2);
@@ -1337,6 +1350,7 @@ if (typeof document !== 'undefined') (() => {
 
     updateLabels();
     requestDraw();
+    return true;
   }
 
   function applyZoomDelta(delta) {
@@ -1437,7 +1451,6 @@ if (typeof document !== 'undefined') (() => {
   });
   controls.rulePreset.addEventListener('change', () => {
     applyRulePreset(controls.rulePreset.value);
-    updateLabels();
   });
 
   for (const key of ['ageLimit', 'density', 'hue', 'saturation', 'discoMode', 'timeEcho', 'speed', 'under', 'survive', 'over', 'birth', 'noise']) {
@@ -1623,6 +1636,7 @@ if (typeof document !== 'undefined') (() => {
     else if (action === 'clear') confirmOrClearGrid();
     else if (action === 'invert') invertGrid();
     else if (action === 'toggle-disco') toggleDiscoMode();
+    else if (action === 'toggle-time-echo') toggleTimeEcho();
     else if (action === 'toggle-brush') toggleBrushMode();
     else if (action === 'toggle-tool') setTool(tool === 'paint' ? 'erase' : 'paint');
     else if (action === 'frame-cells') frameLiveCells();

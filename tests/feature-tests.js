@@ -4,6 +4,7 @@ const vm = require('vm');
 
 const html = fs.readFileSync('index.html', 'utf8');
 const js = fs.readFileSync('game.js', 'utf8');
+const css = fs.readFileSync('styles.css', 'utf8');
 const README = fs.readFileSync('README.md', 'utf8');
 
 function test(name, fn) {
@@ -80,6 +81,21 @@ test('Time Echo retains and fades recent cell probability', () => {
   assert.deepStrictEqual([...echo], [0.5, 1, 0.5]);
   assert.strictEqual(sandbox.window.__testEchoProbability(0, 1), 0.32);
   assert.strictEqual(sandbox.window.__testEchoProbability(0.8, 1), 0.8);
+});
+
+test('T shortcut toggles Time Echo with visible feedback', () => {
+  assert.match(html, /T Time Echo/);
+  assert.match(README, /`T` Time Echo/);
+  assert.match(js, /t: 'toggle-time-echo'/);
+  assert.match(js, /else if \(action === 'toggle-time-echo'\) toggleTimeEcho\(\);/);
+  assert.match(js, /showFeedback\(controls\.timeEcho\.checked \? 'Time Echo on' : 'Time Echo off'\);/);
+
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testShortcut = keyboardShortcutAction;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testShortcut('t'), 'toggle-time-echo');
+  assert.strictEqual(sandbox.window.__testShortcut('T'), 'toggle-time-echo');
 });
 
 test('probability brush offers dot and bloom footprints', () => {
@@ -302,6 +318,13 @@ test('rule preset control explains that presets move related sliders together', 
   assert.match(html, /Rule presets move the survival, birth, and noise sliders together/);
 });
 
+test('rule preset change path avoids duplicate label updates', () => {
+  assert.match(js, /if \(!preset\) \{\n      updateLabels\(\);\n      return false;\n    \}/);
+  assert.match(js, /return true;\n  \}\n\n  function applyZoomDelta/);
+  assert.doesNotMatch(js, /controls\.rulePreset\.addEventListener\('change', \(\) => \{\n    applyRulePreset\(controls\.rulePreset\.value\);\n    updateLabels\(\);\n  \}\);/);
+  assert.match(README, /avoids duplicate rule-preset label updates/);
+});
+
 test('random density and guide grid optimisation helpers exist', () => {
   assert.match(html, /id="density"[^>]*min="0.05"/);
   assert.match(html, /id="density"[^>]*max="0.75"/);
@@ -367,6 +390,7 @@ test('keyboard shortcuts expose common actions', () => {
   assert.match(html, /C\/Delete\/Backspace clear/);
   assert.match(html, /I invert/);
   assert.match(html, /D disco/);
+  assert.match(html, /T Time Echo/);
   assert.match(html, /E paint\/erase/);
   assert.match(html, /1 paint, 2 erase/);
   assert.match(html, /H hide\/show controls/);
@@ -392,6 +416,7 @@ test('keyboard shortcuts expose common actions', () => {
   assert.strictEqual(sandbox.window.__testShortcut('f'), 'frame-cells');
   assert.strictEqual(sandbox.window.__testShortcut('i'), 'invert');
   assert.strictEqual(sandbox.window.__testShortcut('d'), 'toggle-disco');
+  assert.strictEqual(sandbox.window.__testShortcut('t'), 'toggle-time-echo');
   assert.strictEqual(sandbox.window.__testShortcut('H'), 'toggle-controls');
   assert.strictEqual(sandbox.window.__testShortcut('Home'), 'reset-view');
   assert.strictEqual(sandbox.window.__testShortcut('z'), 'reset-view');
@@ -720,7 +745,7 @@ test('zoom feedback uses the same rounded percent label as the stats panel', () 
   assert.strictEqual(sandbox.window.__testZoomPercent(1.234), '123%');
   assert.match(js, /setTextIfChanged\(labels\.zoomLevel, zoomPercentLabel\(zoom\)\);/);
   assert.match(js, /showFeedback\(`Zoom \$\{zoomPercentLabel\(zoom\)\}`\);/);
-  assert.match(html, /main mode, brush mode, pinch zoom, button zoom, or grid content changes/);
+  assert.match(html, /main mode, brush mode, pinch zoom, button zoom, visual modes, or grid content changes/);
 });
 
 test('pinch gestures show the zoom percentage when they end', () => {
@@ -766,6 +791,13 @@ test('playing on small screens folds tuning controls away', () => {
   assert.strictEqual(sandbox.window.__testAutoCollapse(true, 640, true), false);
   assert.strictEqual(sandbox.window.__testAutoCollapse(false, 640, false), false);
   assert.match(js, /if \(shouldAutoCollapseControlsOnPlay\(running, window\.innerWidth, controlsCollapsed\)\) setControlsCollapsed\(true\);/);
+});
+
+test('collapsed controls show softer stat cards over the grid', () => {
+  assert.match(html, /collapsed stats get a quieter card treatment/);
+  assert.match(README, /soft stat cards for readability/);
+  assert.match(css, /\.panel\.collapsed \.stats\s*{[^}]*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/s);
+  assert.match(css, /\.panel\.collapsed \.stats div\s*{[^}]*background:\s*rgba\(255, 255, 255, 0\.05\)/s);
 });
 
 test('hidden tabs pause the simulation to avoid background battery drain', () => {
