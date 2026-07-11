@@ -294,6 +294,8 @@ function visibleGridLineRange(start, cellSize, totalCells, viewportSize) {
 function keyboardShortcutAction(key) {
   const shortcuts = {
     escape: 'pause',
+    backspace: 'clear',
+    delete: 'clear',
     ' ': 'play',
     1: 'paint-tool',
     2: 'erase-tool',
@@ -317,6 +319,12 @@ function keyboardShortcutAction(key) {
   };
 
   return shortcuts[String(key).toLowerCase()] || null;
+}
+
+function shouldIgnoreShortcutTarget(target) {
+  if (!target) return false;
+  if (target.isContentEditable) return true;
+  return ['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName);
 }
 
 function zoomPercentLabel(value) {
@@ -1601,7 +1609,7 @@ if (typeof document !== 'undefined') (() => {
   window.addEventListener('resize', resizeCanvasToWindow);
   document.addEventListener('visibilitychange', pauseForHiddenTab);
   window.addEventListener('keydown', e => {
-    if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target?.tagName)) return;
+    if (shouldIgnoreShortcutTarget(e.target)) return;
     if (e.repeat) return;
 
     const action = keyboardShortcutAction(e.key);

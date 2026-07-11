@@ -364,6 +364,7 @@ test('invert control flips probabilities and keeps ages sensible', () => {
 test('keyboard shortcuts expose common actions', () => {
   assert.match(html, /Space\/P play\/pause/);
   assert.match(html, /Esc pause/);
+  assert.match(html, /C\/Delete\/Backspace clear/);
   assert.match(html, /I invert/);
   assert.match(html, /D disco/);
   assert.match(html, /E paint\/erase/);
@@ -385,6 +386,8 @@ test('keyboard shortcuts expose common actions', () => {
   assert.strictEqual(sandbox.window.__testShortcut('S'), 'step');
   assert.strictEqual(sandbox.window.__testShortcut('r'), 'randomise');
   assert.strictEqual(sandbox.window.__testShortcut('c'), 'clear');
+  assert.strictEqual(sandbox.window.__testShortcut('Delete'), 'clear');
+  assert.strictEqual(sandbox.window.__testShortcut('Backspace'), 'clear');
   assert.strictEqual(sandbox.window.__testShortcut('e'), 'toggle-tool');
   assert.strictEqual(sandbox.window.__testShortcut('f'), 'frame-cells');
   assert.strictEqual(sandbox.window.__testShortcut('i'), 'invert');
@@ -397,6 +400,28 @@ test('keyboard shortcuts expose common actions', () => {
   assert.strictEqual(sandbox.window.__testShortcut('='), 'zoom-in');
   assert.strictEqual(sandbox.window.__testShortcut('-'), 'zoom-out');
   assert.strictEqual(sandbox.window.__testShortcut('x'), null);
+});
+
+test('keyboard shortcuts ignore typing and editable targets', () => {
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`${js}\nwindow.__testIgnoreShortcutTarget = shouldIgnoreShortcutTarget;`, sandbox);
+
+  assert.strictEqual(sandbox.window.__testIgnoreShortcutTarget(null), false);
+  assert.strictEqual(sandbox.window.__testIgnoreShortcutTarget({ tagName: 'INPUT' }), true);
+  assert.strictEqual(sandbox.window.__testIgnoreShortcutTarget({ tagName: 'SELECT' }), true);
+  assert.strictEqual(sandbox.window.__testIgnoreShortcutTarget({ tagName: 'BUTTON' }), false);
+  assert.strictEqual(sandbox.window.__testIgnoreShortcutTarget({ tagName: 'DIV', isContentEditable: true }), true);
+  assert.match(js, /if \(shouldIgnoreShortcutTarget\(e\.target\)\) return;/);
+  assert.match(README, /shortcuts are ignored while typing or editing text/);
+});
+
+test('preset menu groups existing patterns by feel without adding patterns', () => {
+  assert.match(html, /<optgroup label="Small starters">/);
+  assert.match(html, /<optgroup label="Stable shapes">/);
+  assert.match(html, /<optgroup label="Oscillators and larger forms">/);
+  assert.match(html, /Presets are grouped by feel/);
+  assert.match(README, /selected patterns are grouped by feel/);
 });
 
 test('F shortcut frames the current live cells without adding another visible control', () => {

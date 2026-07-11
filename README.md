@@ -16,7 +16,7 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 - **Step**: advance one generation and show the new generation over the grid
 - **Random**: seed a random grid
 - **Invert**: flip the current probability grid so empty areas become alive and live areas become empty
-- **Clear**: ask for one quick confirmation, then reset the grid so a stray tap does not wipe a good pattern
+- **Clear**: ask for one quick confirmation, then reset the grid so a stray tap does not wipe a good pattern; `C`, `Delete`, and `Backspace` all use the same confirmation path
 - **One finger drag**: paint or erase cells; fast drags fill the gaps between cells, stroke feedback reports how many cells changed, desktop mouse users get a crosshair cursor and filled brush preview before painting, erase/pan modes change the cursor, and the active paint/erase button is visually marked
 - **Alt-drag**: temporarily flip paint and erase for quick corrections without changing the selected tool; the desktop hover preview also flips so you can see the temporary tool before drawing
 - **Two finger pinch / drag**: zoom and pan around the grid, with a brief zoom percentage shown when the pinch ends
@@ -27,7 +27,7 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 - **Reset view**: return zoom and pan to the default view; the current zoom level is shown in the stats panel
 - **Grid size**: change the simulation resolution
 - **Probability brush**: switch between a precise dot and Bloom, a soft 3 × 3 probability cluster with weaker surrounding cells and matching erase behaviour; press `B` to toggle it quickly while painting
-- **Preset pattern**: seed a glider, blinker, traffic light, lightweight spaceship, R-pentomino, small exploder, acorn, diehard, loaf, block, toad, cross, diamond, boat, tub, pulsar, beacon, clock, pentadecathlon, Gosper glider gun, or random soup; choosing a preset replaces the current grid, selected patterns show their live cell count, auto-frame into view, and stay selected when the grid size changes
+- **Preset pattern**: seed a glider, blinker, traffic light, lightweight spaceship, R-pentomino, small exploder, acorn, diehard, loaf, block, toad, cross, diamond, boat, tub, pulsar, beacon, clock, pentadecathlon, Gosper glider gun, or random soup; choosing a preset replaces the current grid, selected patterns are grouped by feel, show their live cell count, auto-frame into view, and stay selected when the grid size changes
 - **Rule preset**: quickly switch between classic-ish, calm, HighLife-ish, spark, and chaotic probability rules; the active preset is shown with a readable label and each preset moves the survival, birth, and noise sliders together. HighLife-ish uses its defining `B36` births with three or six neighbours
 - **Random density**: control how full the random grid and random soup preset are
 - **Cell age limit**: set how many generations a living cell can survive before ageing out; `0` means cells never die of age
@@ -48,7 +48,7 @@ If hosted on GitHub Pages, the game can run as a static site with no build step.
 - **Hidden tabs**: the simulation pauses when the browser tab is hidden to avoid wasting battery in the background
 - **Primary controls**: sit on a subtle glass tray with brighter hover states so they remain readable over busy patterns
 - **Underpopulation / survival / overpopulation / birth / noise**: tune the probability rules
-- **Keyboard shortcuts**: Space or `P` play/pause, `Esc` pause, `S` step, `R` random, `C` clear, `I` invert, `D` disco mode, `B` Dot/Bloom brush, `E` paint/erase, `1` paint, `2` erase, `H` hide/show controls, `F` frame live cells, `Z`, `Home`, or `0` reset view, `+` / `-` zoom. Held shortcuts are ignored after the first keydown so one long press does not flood steps or resets
+- **Keyboard shortcuts**: Space or `P` play/pause, `Esc` pause, `S` step, `R` random, `C`, `Delete`, or `Backspace` clear, `I` invert, `D` disco mode, `B` Dot/Bloom brush, `E` paint/erase, `1` paint, `2` erase, `H` hide/show controls, `F` frame live cells, `Z`, `Home`, or `0` reset view, `+` / `-` zoom. Held shortcuts are ignored after the first keydown so one long press does not flood steps or resets, and shortcuts are ignored while typing or editing text
 
 ## Local development
 
